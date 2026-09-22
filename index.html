@@ -43,6 +43,8 @@
 </main></div>
 <script>
 (() => {
+
+(() => {
   const $ = (q) => document.querySelector(q);
   const $ = (q) => Array.from(document.querySelectorAll(q));
   const state = { stars: 0, needs: { hunger: 78, bored: 62, sleep: 42 } };
@@ -209,6 +211,8 @@
 
   try{const old=JSON.parse(localStorage.getItem("alien-bong-v1"));if(old){state.stars=old.stars||0;state.needs=old.needs||state.needs;$("#stars").textContent="⭐ "+state.stars;}}catch(e){}
   updateNeeds();
+})();
+
 })();
 </script>
 </body>
