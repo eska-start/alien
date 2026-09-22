@@ -69,6 +69,13 @@ button{font:inherit;border:0}
 @keyframes pop{12%,72%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-7px) scale(.97)}}
 .controls{position:absolute;z-index:40;left:18px;right:18px;bottom:18px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 .hint{background:#ffffffed;box-shadow:var(--shadow);border-radius:20px;padding:12px 15px;font-size:13px;font-weight:800;color:var(--muted);max-width:340px}
+.mission{position:absolute;z-index:35;left:50%;top:88px;transform:translateX(-50%);background:#fff;border-radius:20px;padding:10px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;min-width:280px}
+.mission b{font-size:13px}.mission small{display:block;color:var(--muted);font-weight:800;margin-top:2px}
+.mission .progress{width:58px;height:8px;background:#edf0f8;border-radius:8px;overflow:hidden}.mission .progress i{display:block;height:100%;width:0;background:#6e7bf7;border-radius:8px;transition:.3s}
+.discovery{position:absolute;z-index:55;inset:0;background:rgba(36,45,70,.28);display:none;align-items:center;justify-content:center;padding:20px}
+.discovery.show{display:flex}.discovery-card{width:min(440px,100%);background:#fff;border-radius:30px;padding:24px;text-align:center;box-shadow:0 35px 90px rgba(30,40,80,.3)}
+.discovery-icon{font-size:58px}.discovery-card h2{margin:6px 0}.discovery-card p{margin:0 0 18px;color:var(--muted);font-weight:700;line-height:1.5}
+.discovery-btn{width:100%;height:52px;border-radius:17px;background:#eef0ff;color:#5968e8;font-weight:900;cursor:pointer}
 .actions{display:flex;gap:10px}
 .action{width:62px;height:62px;background:#fff;box-shadow:var(--shadow);border-radius:21px;font-size:28px;cursor:pointer}
 .action:active{transform:scale(.96)}
@@ -109,11 +116,16 @@ button{font:inherit;border:0}
     <div class="topbar">
       <div class="brand">👽 외계인 친구들</div>
       <div class="status">
-        <div class="pill" id="friendCount">친구 0명</div>
+        <div class="pill" id="dayCount">DAY 1</div>
+        <div class="pill" id="friendCount">친구 1명</div>
         <div class="pill" id="starCount">⭐ 0</div>
       </div>
     </div>
 
+    <div class="mission" id="mission">
+      <div>🎯</div><div><b id="missionTitle">민트에게 간식을 주세요</b><small id="missionDesc">민트를 🍓 간식 장소로 데려가세요</small></div>
+      <div class="progress"><i id="missionProgress"></i></div>
+    </div>
     <div class="room" id="room">
       <div class="window"><div class="cloud"></div><div class="cloud c2"></div></div>
       <div class="wall-shelf"><div class="shelf-item i1"></div><div class="shelf-item i2"></div><div class="shelf-item i3"></div></div>
@@ -162,6 +174,9 @@ button{font:inherit;border:0}
       </div>
     </div>
 
+    <div class="discovery" id="discovery">
+      <div class="discovery-card"><div class="discovery-icon" id="discoveryIcon">✨</div><h2 id="discoveryTitle">새로운 발견!</h2><p id="discoveryText">외계인 친구가 좋아하는 장소를 알아냈어요.</p><button class="discovery-btn" id="discoveryBtn">계속 놀기</button></div>
+    </div>
     <div class="overlay show" id="start">
       <div class="start-card">
         <div class="badge">오늘의 새로운 친구</div>
@@ -176,7 +191,17 @@ button{font:inherit;border:0}
 
 <script>
 (() => {
-  const state = { friends: ['mint'], stars: 0 };
+  const state = {
+    friends: ['mint'], stars: 0, day: 1, mission: 0,
+    missions: [
+      {title:'민트에게 간식을 주세요',desc:'민트를 🍓 간식 장소로 데려가세요',type:'food',id:'mint'},
+      {title:'민트와 놀아 주세요',desc:'민트를 🧸 놀이 장소로 데려가세요',type:'play',id:'mint'},
+      {title:'민트를 재워 주세요',desc:'민트를 🛏️ 낮잠 장소로 데려가세요',type:'sleep',id:'mint'},
+      {title:'새로운 친구를 초대하세요',desc:'👽 친구 목록에서 보라 또는 핑크를 초대하세요',type:'invite',id:'violet'},
+      {title:'보라에게 간식을 주세요',desc:'보라를 🍓 간식 장소로 데려가세요',type:'food',id:'violet'},
+      {title:'핑크와 낮잠을 자요',desc:'핑크를 🛏️ 낮잠 장소로 데려가세요',type:'sleep',id:'pink'}
+    ]
+  };
   const alienNames = {mint:'민트', violet:'보라', pink:'핑크'};
   const alienMsg = {
     mint:{food:['냠냠!','딸기 최고!'],play:['빙글빙글!','같이 놀자!'],sleep:['포근하다…','꾸벅꾸벅…']},
@@ -190,10 +215,36 @@ button{font:inherit;border:0}
   const room = document.getElementById('room');
   const starCount = document.getElementById('starCount');
   const friendCount = document.getElementById('friendCount');
+  const dayCount = document.getElementById('dayCount');
+  const missionTitle = document.getElementById('missionTitle');
+  const missionDesc = document.getElementById('missionDesc');
+  const missionProgress = document.getElementById('missionProgress');
+  const discovery = document.getElementById('discovery');
+  const discoveryIcon = document.getElementById('discoveryIcon');
+  const discoveryTitle = document.getElementById('discoveryTitle');
+  const discoveryText = document.getElementById('discoveryText');
 
   function updateStatus(){
     friendCount.textContent = '친구 ' + state.friends.length + '명';
     starCount.textContent = '⭐ ' + state.stars;
+    dayCount.textContent = 'DAY ' + state.day;
+    const m=state.missions[state.mission];
+    missionTitle.textContent=m.title; missionDesc.textContent=m.desc;
+    missionProgress.style.width=(state.mission%3)/2*100+'%';
+  }
+  function completeMission(){
+    const m=state.missions[state.mission];
+    state.stars+=3; state.mission++;
+    if(state.mission>=state.missions.length){
+      state.day++; state.mission=0;
+      showDiscovery('🌟','하루를 완주했어요!','외계인 친구들과 즐거운 하루를 보냈어요. 내일은 새로운 미션이 기다려요!');
+    } else if(m.type==='invite'){
+      showDiscovery('👽','새로운 친구를 만났어요!','친구마다 좋아하는 장소가 달라요. 같이 지내면서 좋아하는 것을 찾아보세요.');
+    }
+    updateStatus();
+  }
+  function showDiscovery(icon,title,text){
+    discoveryIcon.textContent=icon; discoveryTitle.textContent=title; discoveryText.textContent=text; discovery.classList.add('show');
   }
   function say(text, x='50%', y='40%'){
     const b=document.createElement('div');
@@ -208,6 +259,7 @@ button{font:inherit;border:0}
     if(!el) return;
     el.classList.remove('hidden');
     if(!state.friends.includes(id)){ state.friends.push(id); state.stars += 1; }
+    if(state.missions[state.mission]?.type==='invite') completeMission();
     updateStatus();
     drawer.classList.remove('open');
     notify(alienNames[id]+'가 방에 들어왔어요!');
@@ -223,9 +275,13 @@ button{font:inherit;border:0}
     el.classList.add('happy');
     say(msgs[idx], Math.min(74, el.offsetLeft/room.clientWidth*100)+'%', Math.max(18,el.offsetTop/room.clientHeight*100-7)+'%');
     setTimeout(()=>el.classList.remove('happy'),900);
-    state.stars += 1; updateStatus();
+    state.stars += 1;
+    const m=state.missions[state.mission];
+    if(m && m.type===type && m.id===id) completeMission();
+    updateStatus();
   }
 
+  document.getElementById('discoveryBtn').addEventListener('click',()=>discovery.classList.remove('show'));
   document.getElementById('startBtn').addEventListener('click',()=>{
     start.classList.remove('show'); invite('mint');
   });
