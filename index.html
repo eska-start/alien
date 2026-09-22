@@ -22,6 +22,7 @@
 .puzzle{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;width:min(420px,90vw);margin:18px auto;padding:5px;background:#d8def3;border-radius:16px}.piece{aspect-ratio:1;border:0;border-radius:9px;background-image:url('assets/puzzle-room.svg');background-size:300% 300%}.empty{background:#d8def3}
 .diff{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:700px;margin:20px auto}.pane{position:relative;aspect-ratio:1.5;background:white;border-radius:14px;overflow:hidden}.pane img{width:100%;height:100%;object-fit:cover}.hot{position:absolute;transform:translate(-50%,-50%);width:52px;height:52px;border:4px solid transparent;background:transparent;border-radius:50%}.found{border-color:#ffd45c;background:#ffd45c44}
 .build{position:relative;width:min(620px,100%);height:280px;margin:15px auto;border-radius:18px;overflow:hidden;background:linear-gradient(#cbeeff 0 58%,#99d995 58%)}.part{position:absolute;display:none}.foundation{left:20%;bottom:14%;width:60%;height:16%;background:#b7a084}.wall{left:25%;bottom:30%;width:50%;height:29%;background:#ffb577}.roof{left:18%;bottom:59%;width:64%;height:20%;background:#e8758b;clip-path:polygon(50% 0,100% 100%,0 100%)}.win{left:58%;bottom:40%;width:13%;height:13%;background:#9ddcf3;border:5px solid white}.bdoor{left:34%;bottom:30%;width:13%;height:23%;background:#805f7b}.materials{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.materials button{background:white;border-radius:14px;padding:10px;font-weight:900}.used{opacity:.35}
+.dragtray{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px auto}.dragitem{touch-action:none;user-select:none;cursor:grab;background:white;border-radius:14px;padding:10px 14px;font-size:28px;box-shadow:0 5px 12px #35456b18}.dragitem.dragging{opacity:.55;transform:scale(1.08)}.dropzone{min-height:72px;border:3px dashed #b7c0df;border-radius:16px;padding:12px;margin:10px auto;max-width:520px;background:#fff}.dropzone.over{background:#eef0ff;border-color:#6d72e8}.recipe{display:flex;justify-content:center;gap:6px;min-height:55px;align-items:center}.ingredient{width:48px;height:48px;border-radius:10px;background:#f3f5fb;display:flex;align-items:center;justify-content:center;font-size:28px}.dragboard{position:relative;width:min(420px,90vw);height:min(420px,90vw);margin:18px auto;touch-action:none}.dragpiece{position:absolute;width:33.333%;height:33.333%;background-image:url('assets/puzzle-room.svg');background-size:300% 300%;border:3px solid white;border-radius:10px;box-shadow:0 5px 12px #35456b22;touch-action:none;cursor:grab}.dragpiece.locked{cursor:default;box-shadow:none}.buildtarget{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:70%;height:70%;border:3px dashed #ffffff99;border-radius:18px}.part.dragpart{display:block;opacity:.85;pointer-events:none}.mix{font-size:38px}
 .colorbook{max-width:650px;margin:auto;background:white;border-radius:16px;padding:8px}.colorbook svg{width:100%;height:auto}.region{cursor:pointer;stroke:#59647b;stroke-width:5}.palette{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:12px}.swatch{width:38px;height:38px;border-radius:50%;border:4px solid white}.selected{outline:3px solid #5968e8}
 .memory{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:480px;margin:25px auto}.memory button{aspect-ratio:1;border-radius:14px;background:white;font-size:30px}.open{background:#e7eaff!important}
 .msg{font-weight:900;min-height:25px}.ok{color:#438b73}.bad{color:#d96c78}
@@ -43,252 +44,152 @@
 <script>
 (() => {
   const $ = (q) => document.querySelector(q);
-  const $$ = (q) => Array.from(document.querySelectorAll(q));
+  const $ = (q) => Array.from(document.querySelectorAll(q));
   const state = { stars: 0, needs: { hunger: 78, bored: 62, sleep: 42 } };
+  function save(){localStorage.setItem("alien-bong-v1",JSON.stringify(state));}
+  function reward(n){state.stars+=n;$("#stars").textContent="⭐ "+state.stars;save();}
+  function updateNeeds(){["hunger","bored","sleep"].forEach(k=>$("#"+k).style.width=state.needs[k]+"%");}
+  function openPanel(title,html){$("#title").textContent=title;$("#body").innerHTML=html;$("#panel").classList.remove("hidden-panel");}
+  function closePanel(){$("#panel").classList.add("hidden-panel");}
+  $("#startBtn").addEventListener("click",()=>{$("#start").classList.add("hidden-panel");save();});
+  $("#close").addEventListener("click",closePanel);
+  $(".dock button").forEach(b=>b.addEventListener("click",()=>openActivity(b.dataset.open)));
 
-  function save() {
-    localStorage.setItem("alien-bong-v1", JSON.stringify(state));
-  }
-  function reward(n) {
-    state.stars += n;
-    $("#stars").textContent = "⭐ " + state.stars;
-    save();
-  }
-  function updateNeeds() {
-    ["hunger","bored","sleep"].forEach((k) => {
-      $("#" + k).style.width = state.needs[k] + "%";
-    });
-  }
-  function openPanel(title, html) {
-    $("#title").textContent = title;
-    $("#body").innerHTML = html;
-    $("#panel").classList.remove("hidden-panel");
-  }
-  function closePanel() {
-    $("#panel").classList.add("hidden-panel");
-  }
-
-  $("#startBtn").addEventListener("click", () => {
-    $("#start").classList.add("hidden-panel");
-    save();
-  });
-  $("#close").addEventListener("click", closePanel);
-
-  $$(".dock button").forEach((button) => {
-    button.addEventListener("click", () => openActivity(button.dataset.open));
-  });
-
-  function openActivity(type) {
-    if (type === "games") {
-      gameMenu();
-      return;
-    }
-    const titles = {care:"🛁 돌보기", dress:"👕 꾸미기", food:"🍳 요리", home:"🪴 방꾸미기"};
-    const html = {
-      care: '<div class="stage"><h2>외계인을 돌봐요</h2><p>원하는 행동을 골라 상태를 회복하세요.</p><button class="primary act">🛁 목욕하기</button><br><br><button class="primary act">✨ 빗질하기</button><br><br><button class="primary act">😴 낮잠 재우기</button></div>',
-      dress: '<div class="stage"><h2>오늘의 코디</h2><div style="font-size:110px">👽</div><button class="primary dress">👑 왕관</button><br><br><button class="primary dress">🎀 리본</button></div>',
-      food: '<div class="stage"><h2>샌드위치 만들기</h2><p>재료를 3개 선택하세요.</p><div class="materials"><button>🍞</button><button>🥬</button><button>🧀</button><button>🍅</button><button>🥚</button></div><div class="msg" id="foodMsg">0 / 3</div></div>',
-      home: '<div class="stage"><h2>방에 장식을 놓아요</h2><div style="font-size:100px">🏠</div><button class="primary homeitem">🪴 화분 놓기</button><br><br><button class="primary homeitem">⭐ 별 장식 놓기</button></div>'
+  function openActivity(type){
+    if(type==="games"){gameMenu();return;}
+    const titles={care:"🛁 돌보기",dress:"👕 꾸미기",food:"🍳 요리",home:"🪴 방꾸미기"};
+    const html={
+      care:'<div class="stage"><h2>외계인을 돌봐요</h2><p>원하는 행동을 골라 상태를 회복하세요.</p><button class="primary act">🛁 목욕하기</button><br><br><button class="primary act">✨ 빗질하기</button><br><br><button class="primary act">😴 낮잠 재우기</button></div>',
+      dress:'<div class="stage"><h2>오늘의 코디</h2><div style="font-size:110px">👽</div><button class="primary dress">👑 왕관</button><br><br><button class="primary dress">🎀 리본</button></div>',
+      food:'<div class="stage"><h2>샌드위치 만들기</h2><p>재료를 <b>잡아서 빵 위로 끌어다 놓으세요.</b></p><div class="recipe" id="recipe"><div class="ingredient">🍞</div></div><div class="dropzone" id="foodDrop">여기에 재료를 놓기</div><div class="dragtray">'+["🥬","🧀","🍅","🥚","🥓"].map((x,i)=>'<div class="dragitem" draggable="true" data-food="'+i+'">'+x+'</div>').join("")+'</div><div class="msg" id="foodMsg">0 / 3</div></div>',
+      home:'<div class="stage"><h2>방에 장식을 놓아요</h2><p>장식을 <b>잡아 원하는 위치로 끌어다 놓으세요.</b></p><div class="dropzone" id="homeDrop" style="height:240px;position:relative">방 꾸미기 공간</div><div class="dragtray"><div class="dragitem" draggable="true">🪴</div><div class="dragitem" draggable="true">⭐</div><div class="dragitem" draggable="true">🖼️</div></div></div>'
     };
-    openPanel(titles[type], html[type]);
-    if (type === "care") {
-      $$(".act").forEach((b) => b.addEventListener("click", () => {
-        state.needs.sleep = Math.min(100, state.needs.sleep + 35);
-        state.needs.bored = Math.min(100, state.needs.bored + 20);
-        reward(1);
-        updateNeeds();
-      }));
-    }
-    if (type === "food") {
-      let n = 0;
-      $$(".materials button").forEach((b) => b.addEventListener("click", () => {
-        if (b.disabled) return;
-        b.disabled = true;
-        n++;
-        $("#foodMsg").textContent = n + " / 3";
-        if (n === 3) {
-          state.needs.hunger = 100;
-          $("#foodMsg").textContent = "요리 완성! ⭐ +5";
-          reward(5);
-          updateNeeds();
-        }
-      }));
-    }
-    if (type === "dress" || type === "home") {
-      $$(".dress,.homeitem").forEach((b) => b.addEventListener("click", () => reward(1)));
-    }
+    openPanel(titles[type],html[type]);
+    if(type==="care") $(".act").forEach(b=>b.addEventListener("click",()=>{state.needs.sleep=Math.min(100,state.needs.sleep+35);state.needs.bored=Math.min(100,state.needs.bored+20);reward(1);updateNeeds();}));
+    if(type==="dress") $(".dress").forEach(b=>b.addEventListener("click",()=>reward(1)));
+    if(type==="food") setupFood();
+    if(type==="home") setupHome();
   }
 
-  function gameMenu() {
-    openPanel("🎮 게임 놀이터",
-      '<div class="menu">' +
-      '<button class="gamecard" data-game="p"><img src="assets/puzzle-room.svg"><div><b>🧩 그림 퍼즐</b><small>8조각을 직접 움직여 완성</small></div></button>' +
-      '<button class="gamecard" data-game="d"><img src="assets/difference-room.svg"><div><b>🔎 틀린 그림 찾기</b><small>다른 곳 5개를 찾아요</small></div></button>' +
-      '<button class="gamecard" data-game="b"><img src="assets/build-town.svg"><div><b>🏠 마을 만들기</b><small>순서대로 집을 건설해요</small></div></button>' +
-      '<button class="gamecard" data-game="c"><img src="assets/coloring-space.svg"><div><b>🎨 색칠 공부</b><small>그림 영역을 직접 색칠</small></div></button>' +
-      '<button class="gamecard" data-game="m"><img src="assets/puzzle-room.svg"><div><b>🧠 기억 챌린지</b><small>같은 그림 6쌍 찾기</small></div></button>' +
-      '</div>'
-    );
-    $$("[data-game]").forEach((b) => b.addEventListener("click", () => {
-      const g = b.dataset.game;
-      if (g === "p") puzzle();
-      if (g === "d") difference();
-      if (g === "b") building();
-      if (g === "c") coloring();
-      if (g === "m") memory();
-    }));
-  }
-
-  function stage(title, sub) {
-    openPanel(title, '<div class="stage"><button class="back" id="back">‹ 게임</button><h2>' + title + '</h2><p>' + sub + '</p><div id="stageBody"></div></div>');
-    $("#back").addEventListener("click", gameMenu);
-    return $("#stageBody");
-  }
-
-  function puzzle() {
-    const body = stage("🧩 그림 퍼즐", "빈칸 옆 조각을 눌러 그림을 완성하세요.");
-    let board = [0,1,2,3,4,5,6,7,8];
-    let moves = 0;
-    do { board.sort(() => Math.random() - 0.5); } while (!solvable(board) || board.every((v,i) => v === i));
-    function solvable(a) {
-      let inv = 0;
-      for (let i=0;i<9;i++) for (let j=i+1;j<9;j++) if (a[i] !== 8 && a[j] !== 8 && a[i] > a[j]) inv++;
-      return inv % 2 === 0;
-    }
-    function draw() {
-      body.innerHTML = '<div class="puzzle">' + board.map((v,i) => {
-        if (v === 8) return '<div class="piece empty"></div>';
-        return '<button class="piece" data-i="' + i + '" style="background-position:' + ((v%3)*50) + '% ' + (Math.floor(v/3)*50) + '%"></button>';
-      }).join("") + '</div><div class="stat">' + moves + '번 이동</div><div class="msg" id="pm"></div>';
-      $$("[data-i]").forEach((b) => b.addEventListener("click", () => move(Number(b.dataset.i))));
-    }
-    function move(i) {
-      const e = board.indexOf(8);
-      const dist = Math.abs(Math.floor(i/3)-Math.floor(e/3)) + Math.abs(i%3-e%3);
-      if (dist !== 1) {
-        $("#pm").textContent = "빈칸 옆 조각만 움직여요.";
-        return;
-      }
-      [board[i],board[e]] = [board[e],board[i]];
-      moves++;
-      draw();
-      if (board.every((v,j) => v === j)) {
-        $("#pm").textContent = "퍼즐 완성! ⭐ +10";
-        reward(10);
-      }
-    }
-    draw();
-  }
-
-  function difference() {
-    const body = stage("🔎 틀린 그림 찾기", "오른쪽 그림에서 다른 곳 5개를 찾아보세요.");
-    const spots = [[20,25],[72,30],[48,61],[82,74],[29,78]];
-    body.innerHTML = '<div class="diff"><div class="pane"><img src="assets/difference-room.svg"></div><div class="pane" id="dr"><img src="assets/difference-room.svg"></div></div><div class="stat" id="ds">0 / 5</div>';
-    let found = 0;
-    spots.forEach((p) => {
-      const b = document.createElement("button");
-      b.className = "hot";
-      b.style.left = p[0] + "%";
-      b.style.top = p[1] + "%";
-      b.addEventListener("click", () => {
-        if (b.classList.contains("found")) return;
-        b.classList.add("found");
-        found++;
-        $("#ds").textContent = found + " / 5";
-        if (found === 5) {
-          $("#ds").textContent = "모두 찾았어요! ⭐ +12";
-          reward(12);
-        }
+  function setupDrag(items,drop,onDrop){
+    items.forEach(item=>{
+      item.addEventListener("dragstart",e=>{item.classList.add("dragging");e.dataTransfer.setData("text/plain",item.textContent);});
+      item.addEventListener("dragend",()=>item.classList.remove("dragging"));
+      item.addEventListener("pointerdown",()=>{
+        item.setPointerCapture?.(event?.pointerId);
       });
-      $("#dr").appendChild(b);
+    });
+    ["dragover","pointerover"].forEach(ev=>drop.addEventListener(ev,e=>{if(ev==="dragover")e.preventDefault();drop.classList.add("over");}));
+    ["dragleave","pointerout"].forEach(ev=>drop.addEventListener(ev,()=>drop.classList.remove("over")));
+    drop.addEventListener("drop",e=>{e.preventDefault();const item=items.find(x=>x.classList.contains("dragging"));if(item)onDrop(item);drop.classList.remove("over");});
+  }
+
+  function setupFood(){
+    const items=$("[data-food]"),drop=$("#foodDrop");let n=0;
+    setupDrag(items,drop,item=>{
+      if(item.classList.contains("used"))return;
+      item.classList.add("used");n++;
+      const ing=document.createElement("div");ing.className="ingredient";ing.textContent=item.textContent;$("#recipe").appendChild(ing);
+      $("#foodMsg").textContent=n+" / 3";
+      if(n===3){$("#foodMsg").textContent="샌드위치 완성! ⭐ +8";state.needs.hunger=100;reward(8);updateNeeds();}
+    });
+    items.forEach(item=>item.addEventListener("touchstart",()=>{item.classList.add("dragging");}));
+  }
+
+  function setupHome(){
+    const drop=$("#homeDrop");
+    $(".dragitem").forEach(item=>{
+      item.addEventListener("dragstart",e=>{item.classList.add("dragging");e.dataTransfer.setData("text/plain",item.textContent);});
+      item.addEventListener("dragend",()=>item.classList.remove("dragging"));
+    });
+    drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over");});
+    drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+    drop.addEventListener("drop",e=>{
+      e.preventDefault();const item=$(".dragitem.dragging");if(!item)return;
+      const clone=document.createElement("div");clone.textContent=item.textContent;clone.style.cssText="position:absolute;font-size:45px;left:"+(e.offsetX-22)+"px;top:"+(e.offsetY-22)+"px";drop.appendChild(clone);item.classList.add("used");drop.classList.remove("over");reward(2);
     });
   }
 
-  function building() {
-    const body = stage("🏠 마을 만들기", "기초부터 지붕까지 순서대로 집을 지어보세요.");
-    const names = ["기초","벽","지붕","창문","문"];
-    let step = 0;
-    body.innerHTML = '<div class="build"><i class="part foundation"></i><i class="part wall"></i><i class="part roof"></i><i class="part win"></i><i class="part bdoor"></i></div><div class="materials">' +
-      names.map((n,i) => '<button data-build="' + i + '">' + ["🧱","🧱","🔺","🪟","🚪"][i] + '<br><small>' + n + '</small></button>').join("") +
-      '</div><div class="msg" id="bm">기초부터 시작!</div>';
-    $$("[data-build]").forEach((b) => b.addEventListener("click", () => {
-      const i = Number(b.dataset.build);
-      if (i !== step) {
-        $("#bm").textContent = "지금은 " + names[step] + "을(를) 지어야 해요.";
-        return;
-      }
-      body.querySelectorAll(".part")[i].style.display = "block";
-      b.classList.add("used");
-      step++;
-      $("#bm").textContent = step === 5 ? "집 완성! ⭐ +15" : "다음 단계로!";
-      if (step === 5) reward(15);
-    }));
+  function gameMenu(){
+    openPanel("🎮 게임 놀이터",'<div class="menu">'+
+      '<button class="gamecard" data-game="p"><img src="assets/puzzle-room.svg"><div><b>🧩 그림 퍼즐</b><small>조각을 직접 잡아 끌어 맞춰요</small></div></button>'+
+      '<button class="gamecard" data-game="d"><img src="assets/difference-room.svg"><div><b>🔎 틀린 그림 찾기</b><small>확대경을 끌어서 찾아요</small></div></button>'+
+      '<button class="gamecard" data-game="b"><img src="assets/build-town.svg"><div><b>🏠 마을 만들기</b><small>부품을 잡아 끌어 조립해요</small></div></button>'+
+      '<button class="gamecard" data-game="c"><img src="assets/coloring-space.svg"><div><b>🎨 색칠 공부</b><small>색을 끌어 영역에 놓아요</small></div></button>'+
+      '<button class="gamecard" data-game="m"><img src="assets/puzzle-room.svg"><div><b>🧠 기억 챌린지</b><small>카드를 뒤집어 짝을 맞춰요</small></div></button></div>');
+    $("[data-game]").forEach(b=>b.addEventListener("click",()=>({p:puzzle,d:difference,b:building,c:coloring,m:memory}[b.dataset.game])()));
+  }
+  function stage(title,sub){
+    openPanel(title,'<div class="stage"><button class="back" id="back">‹ 게임</button><h2>'+title+'</h2><p>'+sub+'</p><div id="stageBody"></div></div>');
+    $("#back").addEventListener("click",gameMenu);return $("#stageBody");
   }
 
-  function coloring() {
-    const body = stage("🎨 색칠 공부", "색을 고르고 그림 영역을 눌러 색칠하세요.");
-    let color = "#ff8eb4";
-    const done = new Set();
-    body.innerHTML = '<div class="colorbook"><svg viewBox="0 0 900 600"><rect width="900" height="600" rx="30" fill="#eef2ff"/><path class="region" data-r="g" d="M0 470Q220 400 450 470t450 0v130H0z" fill="white"/><circle class="region" data-r="p" cx="450" cy="290" r="175" fill="white"/><path class="region" data-r="b" d="M380 185q70-70 140 0v230q-70 70-140 0z" fill="white"/><circle class="region" data-r="w" cx="450" cy="290" r="68" fill="white"/><path class="region" data-r="s" d="M720 120l14 36 39 3-30 25 10 38-33-21-33 21 10-38-30-25 39-3z" fill="white"/><path class="region" data-r="a" d="M442 185V105h16v80z" fill="white"/><circle cx="428" cy="275" r="13"/><circle cx="472" cy="275" r="13"/><path d="M430 315q20 18 40 0" fill="none" stroke="#26324a" stroke-width="7"/></svg></div><div class="palette">' +
-      ["#ff7fa7","#ffd45c","#72d8c0","#7c9cff","#b38cff","#ff9b63","#8fd0e8"].map((x) => '<button class="swatch" style="background:' + x + '" data-col="' + x + '"></button>').join("") +
-      '</div><div class="stat" id="cs">0 / 6</div>';
-    $$("[data-col]").forEach((b) => b.addEventListener("click", () => { color = b.dataset.col; }));
-    body.querySelectorAll("[data-r]").forEach((r) => r.addEventListener("click", () => {
-      r.setAttribute("fill", color);
-      done.add(r.dataset.r);
-      $("#cs").textContent = done.size + " / 6";
-      if (done.size === 6) {
-        $("#cs").textContent = "작품 완성! ⭐ +10";
-        reward(10);
-      }
-    }));
+  function puzzle(){
+    const body=stage("🧩 그림 퍼즐","조각을 <b>잡아서 끌고</b> 올바른 자리로 맞춰보세요.");
+    const order=[0,1,2,3,4,5,6,7,8],pos=[...order].sort(()=>Math.random()-.5);let locked=0;
+    body.innerHTML='<div class="dragboard" id="dragboard"></div><div class="stat" id="ps">0 / 8 조각 배치</div>';
+    const board=$("#dragboard");
+    pos.forEach((v)=>{
+      const el=document.createElement("div");el.className="dragpiece";el.dataset.v=v;
+      el.style.left=(v%3)*33.333+"%";el.style.top=Math.floor(v/3)*33.333+"%";
+      el.style.backgroundPosition=((v%3)*50)+"% "+(Math.floor(v/3)*50)+"%";
+      el.style.transform="translate("+(Math.random()*45-22)+"px,"+(Math.random()*45-22)+"px) rotate("+(Math.random()*18-9)+"deg)";
+      makeDraggable(el,board,()=>{
+        const x=Number(el.dataset.v);el.style.left=(x%3)*33.333+"%";el.style.top=Math.floor(x/3)*33.333+"%";el.style.transform="";el.classList.add("locked");locked++;$("#ps").textContent=locked+" / 8 조각 배치";
+        if(locked===8){$("#ps").textContent="그림 완성! ⭐ +15";reward(15);}
+      });
+      board.appendChild(el);
+    });
   }
 
-  function memory() {
-    const body = stage("🧠 기억 챌린지", "같은 그림 6쌍을 모두 찾아보세요.");
-    const values = ["🌙","⭐","🪐","🚀","🌈","🌱","🌙","⭐","🪐","🚀","🌈","🌱"].sort(() => Math.random() - 0.5);
-    let first = null, lock = false, found = 0;
-    body.innerHTML = '<div class="memory">' + values.map((v,i) => '<button data-memory="' + i + '">❔</button>').join("") + '</div><div class="stat" id="ms">0 / 6</div>';
-    $$("[data-memory]").forEach((b) => b.addEventListener("click", () => {
-      if (lock || b.classList.contains("done") || b === first) return;
-      const i = Number(b.dataset.memory);
-      b.textContent = values[i];
-      b.classList.add("open");
-      if (!first) { first = b; return; }
-      lock = true;
-      if (first.textContent === b.textContent) {
-        first.classList.add("done");
-        b.classList.add("done");
-        found++;
-        first = null;
-        lock = false;
-        $("#ms").textContent = found + " / 6";
-        if (found === 6) {
-          $("#ms").textContent = "전부 맞췄어요! ⭐ +12";
-          reward(12);
-        }
-      } else {
-        const old = first;
-        setTimeout(() => {
-          old.textContent = "❔";
-          b.textContent = "❔";
-          old.classList.remove("open");
-          b.classList.remove("open");
-          first = null;
-          lock = false;
-        }, 550);
-      }
-    }));
+  function makeDraggable(el,board,onDrop){
+    let sx=0,sy=0,ox=0,oy=0,moved=false;
+    el.addEventListener("pointerdown",e=>{if(el.classList.contains("locked"))return;el.setPointerCapture(e.pointerId);sx=e.clientX;sy=e.clientY;const r=el.getBoundingClientRect();ox=r.left;oy=r.top;el.classList.add("dragging");});
+    el.addEventListener("pointermove",e=>{if(!el.classList.contains("dragging"))return;moved=true;el.style.transform="translate("+(e.clientX-sx)+"px,"+(e.clientY-sy)+"px)";});
+    el.addEventListener("pointerup",e=>{if(!el.classList.contains("dragging"))return;el.classList.remove("dragging");if(!moved)return;moved=false;const br=board.getBoundingClientRect(),r=el.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;const x=Number(el.dataset.v),tx=br.left+(x%3+.5)*br.width/3,ty=br.top+(Math.floor(x/3)+.5)*br.height/3;if(Math.hypot(cx-tx,cy-ty)<br.width/8)onDrop();else el.style.transform="";}
+    );
   }
 
-  try {
-    const old = JSON.parse(localStorage.getItem("alien-bong-v1"));
-    if (old) {
-      state.stars = old.stars || 0;
-      state.needs = old.needs || state.needs;
-      $("#stars").textContent = "⭐ " + state.stars;
-    }
-  } catch (e) {}
+  function difference(){
+    const body=stage("🔎 틀린 그림 찾기","돋보기를 <b>잡아서 그림 위를 훑어</b> 다른 곳을 찾아보세요.");
+    const spots=[[20,25],[72,30],[48,61],[82,74],[29,78]];let found=0;
+    body.innerHTML='<div class="diff"><div class="pane"><img src="assets/difference-room.svg"></div><div class="pane" id="dr"><img src="assets/difference-room.svg"></div></div><div class="stat" id="ds">0 / 5</div><div class="msg" id="dm">오른쪽 그림을 드래그해서 찾아보세요.</div>';
+    const dr=$("#dr"),lens=document.createElement("div");lens.textContent="🔍";lens.style.cssText="position:absolute;left:10%;top:10%;font-size:42px;pointer-events:none;filter:drop-shadow(0 3px 4px #0004)";dr.appendChild(lens);
+    dr.addEventListener("pointermove",e=>{const r=dr.getBoundingClientRect();lens.style.left=(e.clientX-r.left-20)+"px";lens.style.top=(e.clientY-r.top-20)+"px";});
+    spots.forEach(p=>{const b=document.createElement("button");b.className="hot";b.style.left=p[0]+"%";b.style.top=p[1]+"%";b.addEventListener("click",()=>{if(b.classList.contains("found"))return;b.classList.add("found");found++;$("#ds").textContent=found+" / 5";if(found===5){$("#dm").textContent="전부 찾았어요! ⭐ +12";reward(12);}});dr.appendChild(b);});
+  }
+
+  function building(){
+    const body=stage("🏠 마을 만들기","부품을 <b>잡아 끌어</b> 맞는 설계도 위치에 조립하세요.");
+    const names=["기초","벽","지붕","창문","문"],icons=["🧱","🧱","🔺","🪟","🚪"];let step=0;
+    body.innerHTML='<div class="build" id="buildArea"><div class="buildtarget"></div><i class="part foundation" data-part="0"></i><i class="part wall" data-part="1"></i><i class="part roof" data-part="2"></i><i class="part win" data-part="3"></i><i class="part bdoor" data-part="4"></i></div><div class="dragtray">'+names.map((n,i)=>'<div class="dragitem" draggable="true" data-build="'+i+'">'+icons[i]+'<small>'+n+'</small></div>').join("")+'</div><div class="msg" id="bm">기초를 끌어다 놓으세요.</div>';
+    const area=$("#buildArea");
+    $("[data-build]").forEach(item=>{
+      item.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",item.dataset.build);item.classList.add("dragging");});
+      item.addEventListener("dragend",()=>item.classList.remove("dragging"));
+      item.addEventListener("dblclick",()=>place(item));
+    });
+    area.addEventListener("dragover",e=>e.preventDefault());
+    area.addEventListener("drop",e=>{e.preventDefault();const item=$(".dragitem.dragging");if(item)place(item);});
+    function place(item){const i=Number(item.dataset.build);if(i!==step){$("#bm").textContent="지금은 "+names[step]+"부터 조립해요.";return;}area.querySelector('[data-part="'+i+'"]').style.display="block";item.classList.add("used");step++;$("#bm").textContent=step===5?"마을 집 완성! ⭐ +15":names[step]+"을(를) 조립하세요.";if(step===5)reward(15);}
+  }
+
+  function coloring(){
+    const body=stage("🎨 색칠 공부","색깔 공을 <b>잡아 그림 영역에 끌어다 놓으세요.</b>");
+    let color="#ff8eb4";const done=new Set();
+    body.innerHTML='<div class="colorbook"><svg viewBox="0 0 900 600"><rect width="900" height="600" rx="30" fill="#eef2ff"/><path class="region" data-r="g" d="M0 470Q220 400 450 470t450 0v130H0z" fill="white"/><circle class="region" data-r="p" cx="450" cy="290" r="175" fill="white"/><path class="region" data-r="b" d="M380 185q70-70 140 0v230q-70 70-140 0z" fill="white"/><circle class="region" data-r="w" cx="450" cy="290" r="68" fill="white"/><path class="region" data-r="s" d="M720 120l14 36 39 3-30 25 10 38-33-21-33 21 10-38-30-25 39-3z" fill="white"/><path class="region" data-r="a" d="M442 185V105h16v80z" fill="white"/><circle cx="428" cy="275" r="13"/><circle cx="472" cy="275" r="13"/><path d="M430 315q20 18 40 0" fill="none" stroke="#26324a" stroke-width="7"/></svg></div><div class="dragtray">'+["#ff7fa7","#ffd45c","#72d8c0","#7c9cff","#b38cff","#ff9b63"].map((x,i)=>'<div class="dragitem" draggable="true" data-color="'+x+'">🎨</div>').join("")+'</div><div class="stat" id="cs">0 / 6</div>';
+    $("[data-color]").forEach(item=>{item.style.color=item.dataset.color;item.addEventListener("dragstart",e=>{e.dataTransfer.setData("color",item.dataset.color);item.classList.add("dragging");});item.addEventListener("dragend",()=>item.classList.remove("dragging"));});
+    body.querySelectorAll("[data-r]").forEach(r=>{r.addEventListener("dragover",e=>e.preventDefault());r.addEventListener("drop",e=>{e.preventDefault();const c=e.dataTransfer.getData("color");if(!c)return;r.setAttribute("fill",c);done.add(r.dataset.r);$("#cs").textContent=done.size+" / 6";if(done.size===6){$("#cs").textContent="작품 완성! ⭐ +10";reward(10);}});});
+  }
+
+  function memory(){
+    const body=stage("🧠 기억 챌린지","카드를 <b>뒤집어</b> 같은 그림끼리 짝을 맞춰보세요.");
+    const values=["🌙","⭐","🪐","🚀","🌈","🌱","🌙","⭐","🪐","🚀","🌈","🌱"].sort(()=>Math.random()-.5);let first=null,lock=false,found=0;
+    body.innerHTML='<div class="memory">'+values.map((v,i)=>'<button data-memory="'+i+'">❔</button>').join("")+'</div><div class="stat" id="ms">0 / 6</div>';
+    $("[data-memory]").forEach(b=>b.addEventListener("click",()=>{if(lock||b.classList.contains("done")||b===first)return;const i=Number(b.dataset.memory);b.textContent=values[i];b.classList.add("open");if(!first){first=b;return;}lock=true;if(first.textContent===b.textContent){first.classList.add("done");b.classList.add("done");found++;first=null;lock=false;$("#ms").textContent=found+" / 6";if(found===6){$("#ms").textContent="전부 맞췄어요! ⭐ +12";reward(12);}}else{const old=first;setTimeout(()=>{old.textContent="❔";b.textContent="❔";old.classList.remove("open");b.classList.remove("open");first=null;lock=false;},550);}}));
+  }
+
+  try{const old=JSON.parse(localStorage.getItem("alien-bong-v1"));if(old){state.stars=old.stars||0;state.needs=old.needs||state.needs;$("#stars").textContent="⭐ "+state.stars;}}catch(e){}
   updateNeeds();
 })();
 </script>
