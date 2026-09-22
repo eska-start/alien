@@ -521,6 +521,134 @@ function collectionGame(){
 }
 document.querySelectorAll('[data-world="play"]').forEach(b=>b.onclick=polishedGameMenu);
 setInterval(saveData,10000);
+
+/* V4 game-center fix: each game card gets its own dedicated renderer. */
+(function(){
+  const WT=window.worldTitle, WB=window.worldBody;
+  const reward4=(n)=>{ try{ reward(n); }catch(e){} };
+  const back4=()=>{ clearInterval(window.__alienGameTimer); gameMenuV4(); };
+
+  function gameMenuV4(){
+    WT.textContent='🎮 게임 놀이터';
+    const games=[
+      ['🧩','퍼즐','별자리 순서 맞추기'],
+      ['🎨','색칠하기','캔버스에 자유롭게 그리기'],
+      ['🧠','기억게임','같은 카드 짝 찾기'],
+      ['🎈','풍선 터뜨리기','움직이는 풍선 10개 터뜨리기'],
+      ['🐟','낚시','물고기 5마리 낚기'],
+      ['🍳','요리하기','재료 3개로 요리 완성'],
+      ['🧹','청소하기','방의 먼지 8개 청소'],
+      ['👕','옷입히기','외계인 코디 바꾸기'],
+      ['🚀','우주탐험','행성을 골라 보물 찾기']
+    ];
+    WB.innerHTML='<div class="game-center">'+games.map((g,i)=>'<button class="game-card" data-v4game="'+i+'"><span class="gi">'+g[0]+'</span><b>'+g[1]+'</b><small>'+g[2]+'</small></button>').join('')+'</div>';
+    WB.querySelectorAll('[data-v4game]').forEach(b=>b.onclick=()=>launchGameV4(+b.dataset.v4game));
+  }
+
+  function shell(msg,inner){
+    WT.textContent=msg;
+    WB.innerHTML='<div class="play-area"><div class="game-msg">'+inner+'</div><button class="close-world" id="v4back">‹</button></div>';
+    document.getElementById('v4back').onclick=back4;
+  }
+
+  function launchGameV4(i){
+    clearInterval(window.__alienGameTimer);
+    const names=['🧩 퍼즐','🎨 색칠하기','🧠 기억게임','🎈 풍선 터뜨리기','🐟 낚시','🍳 요리하기','🧹 청소하기','👕 옷입히기','🚀 우주탐험'];
+    if(i===0) puzzle4();
+    else if(i===1) color4();
+    else if(i===2) memory4();
+    else if(i===3) balloon4();
+    else if(i===4) fishing4();
+    else if(i===5) cooking4();
+    else if(i===6) clean4();
+    else if(i===7) dress4();
+    else if(i===8) space4();
+    WT.textContent=names[i];
+  }
+
+  function puzzle4(){
+    const icons=['🌙','⭐','🪐','☀️','🚀','🌍','☄️','🛸','👽'];
+    let order=[...icons].sort(()=>Math.random()-.5),next=0;
+    shell('🧩 퍼즐','아래 그림을 1번부터 순서대로 눌러 완성하세요!');
+    const area=WB.querySelector('.play-area');
+    area.insertAdjacentHTML('beforeend','<div class="puzzle-grid">'+order.map((x,i)=>'<button class="puzzle-piece" data-x="'+i+'">'+x+'</button>').join('')+'</div><div id="v4msg">1번 그림부터!</div>');
+    area.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{
+      if(+b.dataset.x===order.indexOf(icons[next])){b.classList.add('done');next++;document.getElementById('v4msg').textContent=next<9?(next+1)+'번 그림을 찾아요!':'퍼즐 완성! ⭐';if(next===9)reward4(5);}
+      else document.getElementById('v4msg').textContent='순서가 아니에요. 다시 찾아보세요!';
+    });
+  }
+
+  function color4(){
+    shell('🎨 색칠하기','원하는 색을 골라 그림을 자유롭게 색칠하세요!');
+    const area=WB.querySelector('.play-area');
+    area.insertAdjacentHTML('beforeend','<canvas class="paint-canvas" id="v4paint" width="420" height="250"></canvas><div class="palette">'+['#ff6b81','#ffd45c','#66d9a8','#69a7ff','#9b7cff','#ff9f68'].map(c=>'<button class="color-dot" style="background:'+c+'" data-c="'+c+'"></button>').join('')+'</div><button id="v4paintDone">완성하기 ⭐</button>');
+    const cv=document.getElementById('v4paint'),ctx=cv.getContext('2d');ctx.lineWidth=24;ctx.lineCap='round';let drawing=false;
+    area.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>ctx.strokeStyle=b.dataset.c);
+    const pos=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*420/r.width,y:(e.clientY-r.top)*250/r.height}};
+    cv.onpointerdown=e=>{drawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};
+    cv.onpointermove=e=>{if(!drawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke()};
+    cv.onpointerup=cv.onpointerleave=()=>drawing=false;
+    document.getElementById('v4paintDone').onclick=()=>{reward4(5);notify('그림 완성!')};
+  }
+
+  function memory4(){
+    const cards=['🍓','⭐','🪐','🚀','🍓','⭐','🪐','🚀'].sort(()=>Math.random()-.5);
+    shell('🧠 기억게임','같은 그림 두 장을 찾아 모든 짝을 맞춰보세요!');
+    const area=WB.querySelector('.play-area');area.insertAdjacentHTML('beforeend','<div class="memory-grid">'+cards.map((x,i)=>'<button class="memory-card" data-m4="'+i+'">❔</button>').join('')+'</div><div id="v4m">0 / 4 짝</div>');
+    let first=null,lock=false,found=0;
+    area.querySelectorAll('[data-m4]').forEach(b=>b.onclick=()=>{
+      if(lock||b===first||b.classList.contains('found'))return;b.textContent=cards[+b.dataset.m4];
+      if(!first){first=b;return} lock=true;
+      if(first.textContent===b.textContent){first.classList.add('found');b.classList.add('found');found++;first=null;lock=false;document.getElementById('v4m').textContent=found+' / 4 짝';if(found===4){document.getElementById('v4m').textContent='전부 맞췄어요! ⭐';reward4(5)}}
+      else setTimeout(()=>{first.textContent='❔';b.textContent='❔';first=null;lock=false},500);
+    });
+  }
+
+  function balloon4(){
+    shell('🎈 풍선 터뜨리기','움직이는 풍선 10개를 터뜨리세요!');
+    const area=WB.querySelector('.play-area');area.insertAdjacentHTML('beforeend','<div id="v4ball" style="height:280px;position:relative"></div><div id="v4bmsg">0 / 10</div>');
+    let n=0,box=document.getElementById('v4ball');
+    function spawn(){if(n>=10)return;const b=document.createElement('button');b.className='target';b.textContent='🎈';b.style.left=Math.random()*82+'%';b.style.top=Math.random()*70+'%';b.onclick=()=>{n++;b.remove();document.getElementById('v4bmsg').textContent=n+' / 10';if(n===10){reward4(5);document.getElementById('v4bmsg').textContent='성공! ⭐'}else spawn()};box.appendChild(b)}
+    for(let i=0;i<3;i++)spawn();
+  }
+
+  function fishing4(){
+    shell('🐟 낚시','물고기가 나타날 때 눌러서 5마리를 잡으세요!');
+    const area=WB.querySelector('.play-area');area.insertAdjacentHTML('beforeend','<div class="catch-zone" id="v4pond"></div><div id="v4fmsg">0 / 5</div>');
+    let n=0;
+    function fish(){if(n>=5)return;const f=document.createElement('div');f.className='fish';f.textContent=['🐟','🐠','🐡'][Math.floor(Math.random()*3)];f.style.left=Math.random()*80+'%';f.style.top=Math.random()*70+'%';f.onclick=()=>{n++;f.remove();document.getElementById('v4fmsg').textContent=n+' / 5';if(n===5){reward4(5);document.getElementById('v4fmsg').textContent='대어를 잡았어요! ⭐'}else setTimeout(fish,200)};document.getElementById('v4pond').appendChild(f)}
+    fish();
+  }
+
+  function cooking4(){
+    shell('🍳 요리하기','재료를 정확히 3개 골라 우주 요리를 완성하세요!');
+    const area=WB.querySelector('.play-area');area.insertAdjacentHTML('beforeend','<div class="scene-alien" id="v4pot">🍲</div><div class="scene-actions">'+['🍓','🥕','🍳','🍞','🧀','🍌'].map(x=>'<button class="ingredient" data-i4>'+x+'</button>').join('')+'</div><div id="v4cmsg">0 / 3</div>');
+    let n=0;area.querySelectorAll('[data-i4]').forEach(b=>b.onclick=()=>{if(b.disabled)return;b.disabled=true;n++;document.getElementById('v4cmsg').textContent=n+' / 3';if(n===3){document.getElementById('v4pot').textContent='🍱';document.getElementById('v4cmsg').textContent='맛있는 요리 완성! ⭐';reward4(5)}});
+  }
+
+  function clean4(){
+    shell('🧹 청소하기','방 안의 먼지 8개를 모두 찾아 없애세요!');
+    const area=WB.querySelector('.play-area');area.insertAdjacentHTML('beforeend','<div id="v4clean" style="height:280px;position:relative;background:white;border-radius:18px">🛋️ 🪴 🧸</div><div id="v4clmsg">0 / 8</div>');
+    let n=0,box=document.getElementById('v4clean');for(let i=0;i<8;i++){const d=document.createElement('button');d.className='clean-dot';d.textContent=['🫧','✨','🧹'][i%3];d.style.left=Math.random()*85+'%';d.style.top=Math.random()*75+'%';d.onclick=()=>{n++;d.remove();document.getElementById('v4clmsg').textContent=n+' / 8';if(n===8){reward4(5);document.getElementById('v4clmsg').textContent='방이 반짝반짝! ⭐'}};box.appendChild(d)}
+  }
+
+  function dress4(){
+    shell('👕 옷입히기','아이템을 눌러 외계인의 코디를 바꿔보세요!');
+    const area=WB.querySelector('.play-area');area.insertAdjacentHTML('beforeend','<div class="dress-stage" id="v4dress">👽</div><div class="dress-items">'+['👑','🧢','🕶️','🎀','🧣','⭐'].map(x=>'<button data-d4>'+x+'</button>').join('')+'</div><div id="v4dmsg">아이템을 골라요</div>');
+    area.querySelectorAll('[data-d4]').forEach(b=>b.onclick=()=>{document.getElementById('v4dress').textContent=b.textContent+'👽';document.getElementById('v4dmsg').textContent='멋져요!';reward4(1)});
+  }
+
+  function space4(){
+    shell('🚀 우주탐험','행성을 하나 골라 탐험하고 발견을 기록하세요!');
+    const area=WB.querySelector('.play-area');area.insertAdjacentHTML('beforeend','<div class="game-center">'+['🪐','🌙','🌍','☀️'].map((x,i)=>'<button class="game-card" data-s4="'+i+'"><span class="gi">'+x+'</span><b>탐험하기</b><small>새로운 발견!</small></button>').join('')+'</div><div id="v4smsg"></div>');
+    const finds=['보석 행성을 발견했어요!','달 토끼를 만났어요!','우주 꽃을 발견했어요!','새로운 별을 기록했어요!'];
+    area.querySelectorAll('[data-s4]').forEach(b=>b.onclick=()=>{document.getElementById('v4smsg').textContent=finds[+b.dataset.s4]+' ⭐';reward4(4)});
+  }
+
+  document.querySelectorAll('[data-world="play"]').forEach(b=>b.onclick=gameMenuV4);
+  window.__alienGameMenuV4=gameMenuV4;
+})();
+
 </script>
 </body>
 </html>
