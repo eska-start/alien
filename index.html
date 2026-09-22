@@ -133,6 +133,9 @@ button{font:inherit;border:0}
 </style><style id="real-minigames">
 .game-center{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.game-card{border:0;border-radius:20px;background:#f7f8fd;padding:14px;text-align:left;cursor:pointer;min-height:125px}.game-card .gi{font-size:34px}.game-card b{display:block;margin-top:7px}.game-card small{color:#747b91;font-weight:700}.play-area{background:#f4f6ff;border-radius:22px;min-height:360px;padding:18px;text-align:center;position:relative;overflow:hidden}.game-msg{font-weight:1000;margin:8px}.palette{display:flex;gap:8px;justify-content:center;margin:10px;flex-wrap:wrap}.color-dot{width:34px;height:34px;border-radius:50%;border:3px solid white;box-shadow:0 2px 7px #3333;cursor:pointer}.paint-canvas{width:min(100%,420px);height:250px;background:white;border-radius:18px;touch-action:none;cursor:crosshair}.puzzle-grid{display:grid;grid-template-columns:repeat(3,72px);gap:6px;justify-content:center;margin:20px}.puzzle-piece{width:72px;height:72px;border:0;border-radius:12px;background:#fff;font-size:30px;cursor:pointer}.puzzle-piece.done{outline:3px solid #7c86ef}.memory-grid{display:grid;grid-template-columns:repeat(4,62px);gap:7px;justify-content:center;margin:18px}.memory-card{height:62px;border:0;border-radius:12px;background:white;font-size:28px;cursor:pointer}.target{font-size:80px;position:absolute;cursor:pointer;user-select:none}.ingredient{font-size:50px;border:0;background:white;border-radius:15px;padding:10px;cursor:pointer}.catch-zone{height:270px;position:relative;background:#bfe5ef;border-radius:18px;overflow:hidden}.fish{position:absolute;font-size:45px;cursor:pointer}.clean-dot{position:absolute;font-size:32px;cursor:pointer}.dress-stage{font-size:100px;padding:25px}.dress-items{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.dress-items button{border:0;background:white;border-radius:14px;font-size:30px;padding:10px;cursor:pointer}
 @media(max-width:650px){.game-center{grid-template-columns:repeat(2,1fr)}.play-area{min-height:330px}.puzzle-grid{grid-template-columns:repeat(3,60px)}.puzzle-piece{width:60px;height:60px}}
+</style><style id="polish-layer">
+:root{--kid:#6e7bf7;--gold:#ffc94d}
+button{font-family:inherit}.game-card{transition:transform .16s,box-shadow .16s}.game-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px #45507018}.play-area{box-shadow:inset 0 0 0 2px #fff}.score-pop{position:fixed;z-index:150;pointer-events:none;font-size:24px;font-weight:1000;animation:scorePop .9s forwards}@keyframes scorePop{0%{opacity:0;transform:translateY(15px) scale(.7)}25%{opacity:1}100%{opacity:0;transform:translateY(-55px) scale(1.1)}}.toast{z-index:160}.collection{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.collect-item{background:#f7f8fd;border-radius:16px;padding:10px;text-align:center;font-size:28px}.collect-item small{display:block;font-size:9px;font-weight:900;color:#747b91;margin-top:4px}.locked{filter:grayscale(1);opacity:.45}.stage-badge{display:inline-block;background:#fff;border-radius:12px;padding:6px 10px;font-size:10px;font-weight:1000;margin:5px}
 </style></head>
 <body>
 <div id="app">
@@ -467,6 +470,33 @@ function spaceGame(){
 }
 document.querySelectorAll('[data-world]').forEach(b=>b.removeEventListener('click',()=>{}));
 document.querySelectorAll('[data-world="play"]').forEach(b=>b.onclick=gameMenu);
+
+/* Save / progression / polish */
+const SAVE_KEY='alien-world-v3';
+const saveData=()=>localStorage.setItem(SAVE_KEY,JSON.stringify({stars:state.stars,day:state.day,mission:state.mission,friends:state.friends,needs:state.needs,coins,unlocked:window.alienUnlocked||[]}));
+function loadData(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(!s)return;if(Array.isArray(s.friends))state.friends=s.friends;if(Number.isFinite(s.stars))state.stars=s.stars;if(Number.isFinite(s.day))state.day=s.day;if(Number.isFinite(s.mission))state.mission=s.mission;if(s.needs)Object.assign(state.needs,s.needs);if(Number.isFinite(s.coins))coins=s.coins;window.alienUnlocked=s.unlocked||[]}catch(e){}}
+function popReward(text='⭐ +5'){const p=document.createElement('div');p.className='score-pop';p.textContent=text;p.style.left='50%';p.style.top='50%';document.body.appendChild(p);setTimeout(()=>p.remove(),900)}
+const oldReward=reward;
+reward=function(n=2){oldReward(n);popReward('⭐ +'+n);saveData();};
+const oldUpdateStatus=updateStatus;
+updateStatus=function(){oldUpdateStatus();saveData()};
+loadData();updateStatus();updateNeeds();
+
+function polishedGameMenu(){
+ worldTitle.textContent='🎮 게임 놀이터';
+ const games=[['🧩','퍼즐','그림 조각 맞추기'],['🎨','색칠하기','직접 칠하는 그림'],['🧠','기억게임','같은 카드 찾기'],['🎈','풍선 터뜨리기','10개 빠르게 터뜨리기'],['🐟','낚시','물고기 5마리 잡기'],['🍳','요리하기','재료 골라 요리하기'],['🧹','청소하기','먼지 8개 없애기'],['👕','옷입히기','내 외계인 꾸미기'],['🚀','우주탐험','행성에서 보물 찾기']];
+ worldBody.innerHTML='<div class="game-center">'+games.map((g,i)=>'<button class="game-card" data-pgame="'+i+'"><span class="gi">'+g[0]+'</span><b>'+g[1]+'</b><small>'+g[2]+'</small></button>').join('')+'</div><div style="text-align:center;margin-top:12px"><button id="collectionBtn">🎁 모은 것 보기</button></div>';
+ worldBody.querySelectorAll('[data-pgame]').forEach(b=>b.onclick=()=>launchGame(+b.dataset.pgame));
+ document.getElementById('collectionBtn').onclick=collectionGame;
+}
+function collectionGame(){
+ worldTitle.textContent='🎁 나의 수집품';
+ const items=['⭐ 별','🍓 딸기','🐟 물고기','🌱 씨앗','👑 왕관','🧸 장난감','🪐 행성','🚀 로켓'];
+ worldBody.innerHTML='<div class="activity-scene"><div class="scene-title">게임하면서 하나씩 모아봐요!</div><div class="collection">'+items.map((x,i)=>'<div class="collect-item '+(state.stars>=i*3?'':'locked')+'">'+x.split(' ')[0]+'<small>'+x.slice(2)+'</small></div>').join('')+'</div><div class="reward">⭐ 별 '+state.stars+'개</div><button id="collectionBack">게임으로</button></div>';
+ document.getElementById('collectionBack').onclick=polishedGameMenu;
+}
+document.querySelectorAll('[data-world="play"]').forEach(b=>b.onclick=polishedGameMenu);
+setInterval(saveData,10000);
 </script>
 </body>
 </html>
