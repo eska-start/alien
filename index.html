@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#6e7bf7" />
+<title>외계인 친구들</title>
+<style>
+:root{
+  --ink:#27324a;--muted:#6d7893;--bg:#eef2ff;--panel:#ffffff;
+  --accent:#6e7bf7;--accent2:#9b7bff;--yellow:#ffd85a;--mint:#73dfc0;
+  --pink:#ff8fb6;--shadow:0 18px 50px rgba(59,70,120,.16);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:ui-rounded,"Nunito","Noto Sans KR",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+button{font:inherit;border:0}
+#app{height:100dvh;display:flex;justify-content:center;align-items:stretch}
+.game{position:relative;width:min(100%,1180px);height:100%;overflow:hidden;background:
+ radial-gradient(circle at 13% 16%,rgba(255,255,255,.95) 0 7%,transparent 8%),
+ radial-gradient(circle at 86% 11%,rgba(255,255,255,.85) 0 5%,transparent 6%),
+ linear-gradient(180deg,#dfe8ff 0%,#edf4ff 48%,#faf4ea 48%,#f9ecd9 100%);
+}
+.topbar{position:absolute;z-index:30;left:18px;right:18px;top:16px;height:66px;display:flex;align-items:center;gap:12px}
+.brand{background:rgba(255,255,255,.9);box-shadow:var(--shadow);padding:11px 17px;border-radius:22px;font-weight:900;font-size:18px;white-space:nowrap}
+.status{margin-left:auto;display:flex;gap:8px;align-items:center}
+.pill{background:rgba(255,255,255,.9);padding:10px 13px;border-radius:17px;box-shadow:0 10px 30px rgba(59,70,120,.10);font-weight:800;font-size:14px}
+.room{position:absolute;inset:0}
+.window{position:absolute;left:6%;top:17%;width:25%;height:29%;background:#a8def7;border:12px solid #f8f6f2;border-radius:26px;box-shadow:inset 0 -20px 0 rgba(120,188,230,.16),0 14px 30px rgba(78,95,142,.1)}
+.window:before,.window:after{content:"";position:absolute;background:#fff;opacity:.95}
+.window:before{left:50%;top:0;bottom:0;width:8px;transform:translateX(-50%)}
+.window:after{top:50%;left:0;right:0;height:8px;transform:translateY(-50%)}
+.cloud{position:absolute;width:85px;height:28px;background:#fff;border-radius:30px;left:15%;top:15%;box-shadow:30px -10px 0 0 #fff,50px 2px 0 0 #fff}
+.cloud.c2{left:auto;right:8%;top:25%;transform:scale(.75)}
+.rug{position:absolute;left:27%;right:27%;bottom:9%;height:25%;background:#f6cf91;border-radius:50%;box-shadow:inset 0 0 0 10px rgba(255,255,255,.35)}
+.wall-shelf{position:absolute;right:7%;top:21%;width:24%;height:9%;background:#c88d5c;border-radius:12px;box-shadow:0 9px 0 rgba(150,89,49,.16)}
+.shelf-item{position:absolute;bottom:7px;width:34px;height:34px;border-radius:10px}
+.shelf-item.i1{left:12%;background:#ff9fbe}.shelf-item.i2{left:41%;background:#72d5d0}.shelf-item.i3{left:70%;background:#ffd663}
+.bed{position:absolute;right:4%;bottom:14%;width:30%;height:26%;background:#d8b18a;border-radius:25px 25px 12px 12px;box-shadow:0 12px 0 rgba(143,91,53,.14)}
+.mattress{position:absolute;left:8%;right:4%;top:-19%;height:65%;background:#fff9f1;border-radius:28px;box-shadow:0 8px 18px rgba(111,90,60,.12)}
+.pillow{position:absolute;width:31%;height:40%;left:11%;top:11%;background:#ffcfe0;border-radius:17px}
+.blanket{position:absolute;right:0;top:15%;width:47%;height:66%;background:#a5b7ff;border-radius:28px 30px 22px 30px;transform:rotate(1deg)}
+.door{position:absolute;left:7%;bottom:7%;width:18%;height:46%;background:#d5a674;border-radius:20px 20px 8px 8px;box-shadow:inset 10px 0 0 rgba(117,72,37,.12),0 14px 25px rgba(111,90,60,.15)}
+.door-handle{position:absolute;right:15%;top:52%;width:14px;height:14px;background:#ffd85a;border-radius:50%}
+.mat{position:absolute;left:7.5%;bottom:3.5%;width:17%;height:5%;background:#ffffffcc;border-radius:50%;box-shadow:0 6px 0 rgba(70,80,130,.08)}
+.zone{position:absolute;z-index:10;display:flex;align-items:center;justify-content:center;color:#5f6c85;font-size:12px;font-weight:900;pointer-events:none}
+.zone.food{left:38%;bottom:15%;width:17%;height:12%;border-radius:24px;border:3px dashed rgba(110,123,247,.28)}
+.zone.play{left:47%;top:45%;width:16%;height:13%;border-radius:24px;border:3px dashed rgba(255,143,182,.25)}
+.zone.sleep{right:8%;bottom:8%;width:24%;height:13%;border-radius:24px;border:3px dashed rgba(115,223,192,.22)}
+.zone span{background:#ffffffcc;padding:5px 8px;border-radius:10px}
+.aliens{position:absolute;left:31%;right:29%;top:31%;bottom:18%;pointer-events:none}
+.alien{position:absolute;width:108px;height:132px;pointer-events:auto;touch-action:none;cursor:grab;filter:drop-shadow(0 13px 12px rgba(70,82,130,.17));transition:transform .25s ease}
+.alien:active{cursor:grabbing;transform:scale(1.04)}
+.alien .body{position:absolute;left:18px;right:18px;bottom:0;height:82px;border-radius:48% 48% 36% 36%;background:var(--c);box-shadow:inset -10px -8px 0 rgba(0,0,0,.06)}
+.alien .head{position:absolute;left:7px;right:7px;top:12px;height:82px;border-radius:50%;background:var(--c);box-shadow:inset -10px -7px 0 rgba(0,0,0,.06)}
+.alien .eye{position:absolute;top:43px;width:16px;height:25px;border-radius:50%;background:#283045}
+.alien .e1{left:31px}.alien .e2{right:31px}
+.alien .mouth{position:absolute;left:50%;top:68px;width:22px;height:10px;border-bottom:5px solid #283045;border-radius:0 0 18px 18px;transform:translateX(-50%)}
+.alien .foot{position:absolute;bottom:0;width:24px;height:15px;background:var(--c);border-radius:50%}
+.alien .f1{left:16px}.alien .f2{right:16px}
+.alien .antenna{position:absolute;top:-5px;width:8px;height:24px;background:#9aa4c8;border-radius:6px;left:50%;transform:translateX(-50%) rotate(-8deg);transform-origin:bottom}
+.alien .orb{position:absolute;top:-14px;left:50%;width:13px;height:13px;background:#ffd85a;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 0 7px #fff6,0 0 15px #ffd85a}
+.alien.a1{left:4%;top:30%;--c:#79d8c0}.alien.a2{left:38%;top:15%;--c:#a692ff}.alien.a3{right:2%;top:38%;--c:#ff9fbe}
+.alien.hidden{display:none}
+.alien .spark{position:absolute;opacity:0;transition:opacity .2s;font-size:20px}
+.alien .s1{left:0;top:28px}.alien .s2{right:0;top:60px}
+.alien.happy .spark{opacity:1}
+.bubbles{position:absolute;z-index:12;inset:0;pointer-events:none}
+.bubble{position:absolute;background:#fff;border-radius:22px;padding:11px 14px;font-weight:900;box-shadow:0 9px 24px rgba(70,82,130,.12);opacity:0;transform:translateY(8px) scale(.94);animation:pop 2.8s ease forwards}
+@keyframes pop{12%,72%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-7px) scale(.97)}}
+.controls{position:absolute;z-index:40;left:18px;right:18px;bottom:18px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.hint{background:#ffffffed;box-shadow:var(--shadow);border-radius:20px;padding:12px 15px;font-size:13px;font-weight:800;color:var(--muted);max-width:340px}
+.actions{display:flex;gap:10px}
+.action{width:62px;height:62px;background:#fff;box-shadow:var(--shadow);border-radius:21px;font-size:28px;cursor:pointer}
+.action:active{transform:scale(.96)}
+.toast{position:absolute;z-index:50;left:50%;top:86px;transform:translateX(-50%);background:#28324a;color:#fff;padding:12px 16px;border-radius:16px;font-weight:900;opacity:0;pointer-events:none;transition:.22s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(4px)}
+.drawer{position:absolute;z-index:60;left:14px;right:14px;bottom:14px;background:#fff;border-radius:28px;padding:18px;box-shadow:0 30px 70px rgba(40,50,74,.28);transform:translateY(125%);transition:.35s cubic-bezier(.2,.9,.25,1)}
+.drawer.open{transform:translateY(0)}
+.drawer h2{margin:0 0 4px;font-size:20px}.drawer p{margin:0 0 15px;color:var(--muted);font-size:13px;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.card{min-height:94px;border-radius:20px;background:#f4f6ff;padding:12px;text-align:center;font-weight:900;cursor:pointer}
+.card .mini{font-size:34px;display:block;margin-bottom:4px}
+.card small{color:var(--muted)}
+.overlay{position:absolute;z-index:80;inset:0;background:rgba(36,45,70,.38);display:none;align-items:center;justify-content:center;padding:22px}
+.overlay.show{display:flex}
+.start-card{width:min(520px,100%);background:#fff;border-radius:34px;padding:28px;text-align:center;box-shadow:0 35px 90px rgba(30,40,80,.3)}
+.ufo{font-size:68px;animation:float 2.4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px) rotate(-2deg)}}
+.start-card h1{font-size:32px;margin:8px 0 8px}.start-card p{color:var(--muted);font-weight:700;line-height:1.55;margin:0 0 18px}
+.start-btn{width:100%;height:58px;border-radius:19px;background:linear-gradient(135deg,#6e7bf7,#9a7bff);color:#fff;font-weight:900;font-size:17px;cursor:pointer}
+.badge{display:inline-block;margin-bottom:8px;padding:7px 10px;border-radius:12px;background:#eef0ff;color:#6674e8;font-size:12px;font-weight:900}
+@media(max-width:760px){
+ .topbar{top:max(10px,env(safe-area-inset-top));left:10px;right:10px}.brand{font-size:15px;padding:10px 13px}.pill{padding:9px 10px;font-size:12px}
+ .window{left:3%;top:18%;width:37%;height:25%;border-width:8px}.wall-shelf{right:4%;width:29%;top:20%}
+ .door{left:3%;width:25%;height:39%}.mat{left:3%;width:24%}.bed{right:0;width:39%;bottom:19%;height:24%}
+ .rug{left:19%;right:18%;bottom:10%;height:25%}
+ .aliens{left:27%;right:26%;top:31%;bottom:25%}
+ .alien{width:84px;height:104px}.alien .head{height:66px}.alien .body{height:67px}.alien .eye{top:35px;width:12px;height:19px}.alien .e1{left:24px}.alien .e2{right:24px}.alien .mouth{top:55px}
+ .alien.a1{left:0;top:38%}.alien.a2{left:35%;top:15%}.alien.a3{right:-2%;top:43%}
+ .controls{bottom:max(10px,env(safe-area-inset-bottom));left:10px;right:10px}.hint{font-size:11px;padding:10px;max-width:220px}.actions{gap:7px}.action{width:55px;height:55px;border-radius:18px;font-size:24px}
+ .cards{grid-template-columns:1fr 1fr}.start-card{padding:24px}.start-card h1{font-size:27px}
+ .zone{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="game">
+    <div class="topbar">
+      <div class="brand">👽 외계인 친구들</div>
+      <div class="status">
+        <div class="pill" id="friendCount">친구 0명</div>
+        <div class="pill" id="starCount">⭐ 0</div>
+      </div>
+    </div>
+
+    <div class="room" id="room">
+      <div class="window"><div class="cloud"></div><div class="cloud c2"></div></div>
+      <div class="wall-shelf"><div class="shelf-item i1"></div><div class="shelf-item i2"></div><div class="shelf-item i3"></div></div>
+      <div class="door"><div class="door-handle"></div></div>
+      <div class="mat"></div>
+      <div class="rug"></div>
+      <div class="bed"><div class="mattress"><div class="pillow"></div><div class="blanket"></div></div></div>
+
+      <div class="zone food" data-zone="food"><span>🍓 간식</span></div>
+      <div class="zone play" data-zone="play"><span>🧸 놀이</span></div>
+      <div class="zone sleep" data-zone="sleep"><span>🛏️ 낮잠</span></div>
+
+      <div class="aliens">
+        <div class="alien a1" data-id="mint" aria-label="민트 외계인">
+          <div class="antenna"><div class="orb"></div></div><div class="head"><i class="eye e1"></i><i class="eye e2"></i><i class="mouth"></i></div><div class="body"></div><i class="foot f1"></i><i class="foot f2"></i><span class="spark s1">✦</span><span class="spark s2">✦</span>
+        </div>
+        <div class="alien a2 hidden" data-id="violet" aria-label="보라 외계인">
+          <div class="antenna"><div class="orb"></div></div><div class="head"><i class="eye e1"></i><i class="eye e2"></i><i class="mouth"></i></div><div class="body"></div><i class="foot f1"></i><i class="foot f2"></i><span class="spark s1">✦</span><span class="spark s2">✦</span>
+        </div>
+        <div class="alien a3 hidden" data-id="pink" aria-label="핑크 외계인">
+          <div class="antenna"><div class="orb"></div></div><div class="head"><i class="eye e1"></i><i class="eye e2"></i><i class="mouth"></i></div><div class="body"></div><i class="foot f1"></i><i class="foot f2"></i><span class="spark s1">✦</span><span class="spark s2">✦</span>
+        </div>
+      </div>
+      <div class="bubbles" id="bubbles"></div>
+    </div>
+
+    <div class="controls">
+      <div class="hint">외계인을 꾹 눌러서<br>원하는 곳으로 데려가 보세요!</div>
+      <div class="actions">
+        <button class="action" data-action="food" aria-label="간식">🍓</button>
+        <button class="action" data-action="play" aria-label="놀이">🧸</button>
+        <button class="action" data-action="sleep" aria-label="낮잠">🛏️</button>
+        <button class="action" data-action="friends" aria-label="친구 목록">👽</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="drawer" id="drawer">
+      <h2>친구들이 놀러 왔어요!</h2>
+      <p>친구를 눌러 방으로 데려오고 같이 놀아 주세요.</p>
+      <div class="cards">
+        <div class="card" data-invite="mint"><span class="mini">🟢</span>민트<small>씨앗 먹기 좋아해요</small></div>
+        <div class="card" data-invite="violet"><span class="mini">🟣</span>보라<small>장난감을 좋아해요</small></div>
+        <div class="card" data-invite="pink"><span class="mini">🩷</span>핑크<small>낮잠을 좋아해요</small></div>
+      </div>
+    </div>
+
+    <div class="overlay show" id="start">
+      <div class="start-card">
+        <div class="badge">오늘의 새로운 친구</div>
+        <div class="ufo">🛸</div>
+        <h1>외계인이 놀러 왔어요!</h1>
+        <p>작은 외계인 친구를 방으로 초대해 보세요.<br>먹이고, 놀고, 재우면서 재미있게 놀아요.</p>
+        <button class="start-btn" id="startBtn">문 열어주기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const state = { friends: ['mint'], stars: 0 };
+  const alienNames = {mint:'민트', violet:'보라', pink:'핑크'};
+  const alienMsg = {
+    mint:{food:['냠냠!','딸기 최고!'],play:['빙글빙글!','같이 놀자!'],sleep:['포근하다…','꾸벅꾸벅…']},
+    violet:{food:['우주 간식이다!','맛있어요!'],play:['이거 재밌다!','한 번 더!'],sleep:['졸려요…','잘 자요…']},
+    pink:{food:['냠냠냠!','더 주세요!'],play:['깔깔!','신난다!'],sleep:['하암…','꿈나라로!']}
+  };
+  const toast = document.getElementById('toast');
+  const bubbles = document.getElementById('bubbles');
+  const drawer = document.getElementById('drawer');
+  const start = document.getElementById('start');
+  const room = document.getElementById('room');
+  const starCount = document.getElementById('starCount');
+  const friendCount = document.getElementById('friendCount');
+
+  function updateStatus(){
+    friendCount.textContent = '친구 ' + state.friends.length + '명';
+    starCount.textContent = '⭐ ' + state.stars;
+  }
+  function say(text, x='50%', y='40%'){
+    const b=document.createElement('div');
+    b.className='bubble'; b.textContent=text; b.style.left=x; b.style.top=y;
+    bubbles.appendChild(b); setTimeout(()=>b.remove(),2900);
+  }
+  function notify(text){ toast.textContent=text; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1400); }
+
+  function visibleAlien(id){ return document.querySelector('.alien[data-id="'+id+'"]:not(.hidden)'); }
+  function invite(id){
+    const el=document.querySelector('.alien[data-id="'+id+'"]');
+    if(!el) return;
+    el.classList.remove('hidden');
+    if(!state.friends.includes(id)){ state.friends.push(id); state.stars += 1; }
+    updateStatus();
+    drawer.classList.remove('open');
+    notify(alienNames[id]+'가 방에 들어왔어요!');
+    setTimeout(()=>say('안녕!', el.offsetLeft/room.clientWidth*100+'%', el.offsetTop/room.clientHeight*100+'%'),120);
+  }
+
+  function doAction(type){
+    const id = state.friends[state.friends.length-1] || 'mint';
+    const el = visibleAlien(id) || visibleAlien('mint');
+    if(!el) return;
+    const idx = Math.floor(Math.random() * alienMsg[id]?.[type]?.length || 1);
+    const msgs = alienMsg[id]?.[type] || ['재미있어요!'];
+    el.classList.add('happy');
+    say(msgs[idx], Math.min(74, el.offsetLeft/room.clientWidth*100)+'%', Math.max(18,el.offsetTop/room.clientHeight*100-7)+'%');
+    setTimeout(()=>el.classList.remove('happy'),900);
+    state.stars += 1; updateStatus();
+  }
+
+  document.getElementById('startBtn').addEventListener('click',()=>{
+    start.classList.remove('show'); invite('mint');
+  });
+  document.querySelectorAll('.action').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const action=btn.dataset.action;
+      if(action==='friends') drawer.classList.toggle('open'); else doAction(action);
+    });
+  });
+  document.querySelectorAll('[data-invite]').forEach(card=>{
+    card.addEventListener('click',()=>invite(card.dataset.invite));
+  });
+
+  // Pointer drag: works with mouse, touch, and pen.
+  document.querySelectorAll('.alien').forEach(alien=>{
+    let dragging=false, offsetX=0, offsetY=0, moved=false;
+    alien.addEventListener('pointerdown', e=>{
+      if(alien.classList.contains('hidden')) return;
+      dragging=true; moved=false; alien.setPointerCapture(e.pointerId);
+      const r=alien.getBoundingClientRect();
+      offsetX=e.clientX-r.left; offsetY=e.clientY-r.top;
+      alien.style.transition='none'; alien.style.zIndex='25';
+      e.preventDefault();
+    });
+    alien.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      moved=true;
+      const rr=room.getBoundingClientRect();
+      let x=e.clientX-rr.left-offsetX, y=e.clientY-rr.top-offsetY;
+      x=Math.max(0,Math.min(rr.width-alien.offsetWidth,x));
+      y=Math.max(75,Math.min(rr.height-alien.offsetHeight-45,y));
+      alien.style.left=x+'px'; alien.style.top=y+'px'; alien.style.right='auto';
+      e.preventDefault();
+    });
+    alien.addEventListener('pointerup', e=>{
+      if(!dragging) return;
+      dragging=false; alien.style.transition='transform .25s ease'; alien.style.zIndex='';
+      if(!moved){ say('나랑 놀자!'); return; }
+      const rr=room.getBoundingClientRect();
+      const ax=alien.getBoundingClientRect();
+      const cx=ax.left+ax.width/2, cy=ax.top+ax.height/2;
+      const zones=[...document.querySelectorAll('.zone')];
+      const hit=zones.find(z=>{const r=z.getBoundingClientRect();return cx>r.left&&cx<r.right&&cy>r.top&&cy<r.bottom});
+      if(hit) doAction(hit.dataset.zone);
+    });
+  });
+
+  updateStatus();
+})();
+</script>
+</body>
+</html>
