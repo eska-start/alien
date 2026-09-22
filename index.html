@@ -110,7 +110,18 @@ button{font:inherit;border:0}
  .zone{font-size:10px}.mission{top:76px;min-width:245px;padding:8px 10px}.needs{top:130px;right:10px;width:170px}.mission small{font-size:10px}
 }
 </style>
-</head>
+<style id="world-expansion">
+.activity-dock{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:45;display:flex;gap:8px;padding:8px;background:#ffffffdd;border:1px solid #e8eaf3;border-radius:22px;box-shadow:0 12px 30px #45507020}
+.activity-btn{border:0;background:#f7f8fd;border-radius:15px;min-width:55px;height:48px;font-size:23px;cursor:pointer;box-shadow:inset 0 0 0 1px #eceef5}
+.activity-btn small{display:block;font-size:8px;font-weight:900;color:#596078;margin-top:1px}
+.world-panel{position:absolute;inset:0;z-index:80;background:#f5f7ffed;display:none;align-items:center;justify-content:center;padding:20px}
+.world-panel.show{display:flex}.world-card{width:min(760px,94vw);max-height:88vh;overflow:auto;background:white;border-radius:28px;padding:22px;box-shadow:0 25px 70px #27305035}
+.world-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.world-head h2{margin:0;font-size:23px}.close-world{border:0;background:#eef0f7;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer}
+.activity-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.activity-card{border:0;background:#f7f8fd;border-radius:20px;padding:17px;min-height:110px;text-align:left;cursor:pointer}.activity-card b{display:block;font-size:16px;margin:7px 0 4px}.activity-card span{font-size:29px}.activity-card small{color:#72788d;font-weight:700}
+.activity-scene{background:#f4f6ff;border-radius:22px;padding:22px;text-align:center;min-height:260px}.scene-title{font-size:18px;font-weight:1000}.scene-alien{font-size:75px;margin:18px}.scene-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.scene-actions button{border:0;border-radius:15px;padding:12px 16px;background:white;font-weight:900;cursor:pointer;box-shadow:0 5px 15px #45507012}.reward{font-weight:1000;color:#6875e8;margin-top:12px}
+.mini-board{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:440px;margin:18px auto}.mini-cell{aspect-ratio:1;border:0;border-radius:15px;background:white;font-size:28px;cursor:pointer;box-shadow:0 4px 12px #45507012}
+@media(max-width:650px){.activity-dock{bottom:8px;gap:4px;padding:6px;width:calc(100% - 16px);justify-content:space-around}.activity-btn{min-width:0;flex:1;height:45px}.activity-btn small{font-size:7px}.activity-grid{grid-template-columns:repeat(2,1fr)}.world-card{padding:16px}.needs{top:120px;transform:scale(.9);transform-origin:top right}}
+</style></head>
 <body>
 <div id="app">
   <div class="game">
@@ -360,6 +371,36 @@ button{font:inherit;border:0}
 
   updateStatus(); updateNeeds();
 })();
+
+// Expanded virtual-pet world: care, dress-up, cooking, minigames, home and exploration.
+const worldPanel=document.getElementById('worldPanel'), worldTitle=document.getElementById('worldTitle'), worldBody=document.getElementById('worldBody');
+const wardrobe=['🧢','👑','🕶️','🎩','🎀','🧣']; let outfit=0, coins=0;
+function currentFriend(){return state.friends[state.friends.length-1]||'mint'}
+function reward(n=2){coins+=n;state.stars+=n;updateStatus();notify('⭐ +'+n+' 보상!')}
+function openWorld(kind){
+ worldPanel.classList.add('show');
+ const id=currentFriend(), name=alienNames[id];
+ if(kind==='care'){worldTitle.textContent=name+' 돌보기';worldBody.innerHTML='<div class="activity-scene"><div class="scene-title">깨끗하고 건강하게!</div><div class="scene-alien">👽🫧</div><div class="scene-actions"><button data-care="bath">🛁 목욕시키기</button><button data-care="brush">🪥 양치하기</button><button data-care="medicine">💊 건강검진</button></div><div class="reward">돌보면 행복도가 올라가요</div></div>'}
+ if(kind==='dress'){worldTitle.textContent=name+' 꾸미기';worldBody.innerHTML='<div class="activity-scene"><div class="scene-title">오늘은 어떤 모습?</div><div class="scene-alien" id="dressAlien">'+wardrobe[outfit]+'👽</div><div class="scene-actions">'+wardrobe.map((x,i)=>'<button data-outfit="'+i+'">'+x+' 선택</button>').join('')+'</div><div class="reward">원하는 코디를 골라 주세요!</div></div>'}
+ if(kind==='food'){worldTitle.textContent='우주 주방';worldBody.innerHTML='<div class="activity-scene"><div class="scene-title">외계인 간식 만들기</div><div class="scene-alien">🍳👽</div><div class="scene-actions"><button data-food="sandwich">🥪 샌드위치</button><button data-food="fruit">🍓 과일</button><button data-food="cake">🍰 우주 케이크</button></div><div class="reward">요리를 완성하면 배고픔이 회복돼요</div></div>'}
+ if(kind==='play'){worldTitle.textContent='미니게임 놀이터';renderMini()}
+ if(kind==='home'){worldTitle.textContent='우주 방 꾸미기';worldBody.innerHTML='<div class="activity-scene"><div class="scene-title">내 방을 예쁘게!</div><div class="scene-alien">🛋️🪴🖼️</div><div class="scene-actions"><button data-home="plant">🪴 식물 놓기</button><button data-home="toy">🧸 장난감 놓기</button><button data-home="star">🌟 별 장식</button></div><div class="reward">방을 꾸밀수록 새로운 아이템이 열려요</div></div>'}
+ if(kind==='world'){worldTitle.textContent='외계인 마을';worldBody.innerHTML='<div class="activity-grid"><button class="activity-card" data-place="garden"><span>🌱</span><b>우주 정원</b><small>씨앗을 심고 수확해요</small></button><button class="activity-card" data-place="sea"><span>🌊</span><b>별빛 바다</b><small>낚시와 탐험을 해요</small></button><button class="activity-card" data-place="clinic"><span>🏥</span><b>우주 병원</b><small>친구를 건강하게 돌봐요</small></button><button class="activity-card" data-place="rocket"><span>🚀</span><b>로켓 발사장</b><small>새로운 별을 발견해요</small></button></div>'}
+}
+function renderMini(){
+ const emojis=['🍓','⭐','🪐','👽','🍓','⭐','🪐','👽','🍓','⭐','🪐','👽'];let target=emojis[Math.floor(Math.random()*emojis.length)];
+ worldBody.innerHTML='<div class="activity-scene"><div class="scene-title">'+target+'를 찾아요!</div><div class="mini-board">'+emojis.map((x,i)=>'<button class="mini-cell" data-mini="'+i+'">'+x+'</button>').join('')+'</div><div class="reward" id="miniMsg">같은 그림을 찾아 주세요!</div></div>';
+ worldBody.querySelectorAll('[data-mini]').forEach(b=>b.addEventListener('click',()=>{if(b.textContent===target){document.getElementById('miniMsg').textContent='정답! 멋져요!';reward(3)}else{document.getElementById('miniMsg').textContent='앗, 다시 찾아봐요!'}}))
+}
+document.querySelectorAll('[data-world]').forEach(b=>b.addEventListener('click',()=>openWorld(b.dataset.world)));
+document.getElementById('closeWorld').addEventListener('click',()=>worldPanel.classList.remove('show'));
+worldPanel.addEventListener('click',e=>{
+ const care=e.target.closest('[data-care]'); if(care){const n=state.needs[currentFriend()];if(care.dataset.care==='bath'){n.bored=Math.min(100,n.bored+12)}else if(care.dataset.care==='brush'){n.hunger=Math.min(100,n.hunger+5)}else{n.sleep=Math.min(100,n.sleep+8)}reward(1);updateNeeds()}
+ const food=e.target.closest('[data-food]');if(food){state.needs[currentFriend()].hunger=Math.min(100,state.needs[currentFriend()].hunger+35);reward(2);updateNeeds();notify('맛있는 요리 완성!')}
+ const out=e.target.closest('[data-outfit]');if(out){outfit=+out.dataset.outfit;document.getElementById('dressAlien').textContent=wardrobe[outfit]+'👽';reward(1)}
+ const home=e.target.closest('[data-home]');if(home){reward(2);notify('방에 새로운 장식이 생겼어요!')}
+ const place=e.target.closest('[data-place]');if(place){reward(2);notify(place.dataset.place==='garden'?'씨앗을 심었어요!':place.dataset.place==='sea'?'반짝이는 물고기를 발견했어요!':place.dataset.place==='clinic'?'친구의 건강을 확인했어요!':'새로운 별을 발견했어요!')}
+});
 </script>
 </body>
 </html>
