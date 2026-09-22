@@ -130,6 +130,9 @@ button{font:inherit;border:0}
 .a3 .alien-sprite{filter:hue-rotate(145deg) saturate(1.55) brightness(1.12)}
 .alien.happy .alien-sprite{transform:scale(1.12) rotate(-4deg)}
 @media(max-width:650px){.alien{width:88px!important;height:98px!important}.alien-sprite{width:78px;height:78px}}
+</style><style id="real-minigames">
+.game-center{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.game-card{border:0;border-radius:20px;background:#f7f8fd;padding:14px;text-align:left;cursor:pointer;min-height:125px}.game-card .gi{font-size:34px}.game-card b{display:block;margin-top:7px}.game-card small{color:#747b91;font-weight:700}.play-area{background:#f4f6ff;border-radius:22px;min-height:360px;padding:18px;text-align:center;position:relative;overflow:hidden}.game-msg{font-weight:1000;margin:8px}.palette{display:flex;gap:8px;justify-content:center;margin:10px;flex-wrap:wrap}.color-dot{width:34px;height:34px;border-radius:50%;border:3px solid white;box-shadow:0 2px 7px #3333;cursor:pointer}.paint-canvas{width:min(100%,420px);height:250px;background:white;border-radius:18px;touch-action:none;cursor:crosshair}.puzzle-grid{display:grid;grid-template-columns:repeat(3,72px);gap:6px;justify-content:center;margin:20px}.puzzle-piece{width:72px;height:72px;border:0;border-radius:12px;background:#fff;font-size:30px;cursor:pointer}.puzzle-piece.done{outline:3px solid #7c86ef}.memory-grid{display:grid;grid-template-columns:repeat(4,62px);gap:7px;justify-content:center;margin:18px}.memory-card{height:62px;border:0;border-radius:12px;background:white;font-size:28px;cursor:pointer}.target{font-size:80px;position:absolute;cursor:pointer;user-select:none}.ingredient{font-size:50px;border:0;background:white;border-radius:15px;padding:10px;cursor:pointer}.catch-zone{height:270px;position:relative;background:#bfe5ef;border-radius:18px;overflow:hidden}.fish{position:absolute;font-size:45px;cursor:pointer}.clean-dot{position:absolute;font-size:32px;cursor:pointer}.dress-stage{font-size:100px;padding:25px}.dress-items{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.dress-items button{border:0;background:white;border-radius:14px;font-size:30px;padding:10px;cursor:pointer}
+@media(max-width:650px){.game-center{grid-template-columns:repeat(2,1fr)}.play-area{min-height:330px}.puzzle-grid{grid-template-columns:repeat(3,60px)}.puzzle-piece{width:60px;height:60px}}
 </style></head>
 <body>
 <div id="app">
@@ -405,6 +408,65 @@ worldPanel.addEventListener('click',e=>{
  const home=e.target.closest('[data-home]');if(home){reward(2);notify('방에 새로운 장식이 생겼어요!')}
  const place=e.target.closest('[data-place]');if(place){reward(2);notify(place.dataset.place==='garden'?'씨앗을 심었어요!':place.dataset.place==='sea'?'반짝이는 물고기를 발견했어요!':place.dataset.place==='clinic'?'친구의 건강을 확인했어요!':'새로운 별을 발견했어요!')}
 });
+
+let miniTimer=null,paintColor='#ff6b81',dress='👽',memoryOpen=[];
+function gameMenu(){
+ worldTitle.textContent='🎮 게임 놀이터';
+ worldBody.innerHTML='<div class="game-center">'+[
+ ['🧩','퍼즐','조각을 맞춰 그림 완성'],['🎨','색칠하기','마음껏 색칠해요'],['🧠','기억게임','같은 그림을 찾아요'],
+ ['🎈','풍선 터뜨리기','빠르게 터뜨려요'],['🐟','낚시','물고기를 잡아봐요'],['🍳','요리하기','재료를 골라 요리해요'],
+ ['🧹','청소하기','방을 깨끗하게!'],['👕','옷입히기','외계인을 꾸며요'],['🚀','우주탐험','새로운 별을 찾아요']
+ ].map((g,i)=>'<button class="game-card" data-game="'+i+'"><span class="gi">'+g[0]+'</span><b>'+g[1]+'</b><small>'+g[2]+'</small></button>').join('')+'</div>';
+ worldBody.querySelectorAll('[data-game]').forEach(b=>b.onclick=()=>launchGame(+b.dataset.game));
+}
+function launchGame(i){
+ const titles=['🧩 퍼즐','🎨 색칠하기','🧠 기억게임','🎈 풍선 터뜨리기','🐟 낚시','🍳 요리하기','🧹 청소하기','👕 옷입히기','🚀 우주탐험'];
+ worldTitle.textContent=titles[i];
+ if(i===0)puzzleGame(); if(i===1)colorGame(); if(i===2)memoryGame(); if(i===3)balloonGame(); if(i===4)fishingGame(); if(i===5)cookingGame(); if(i===6)cleanGame(); if(i===7)dressGame(); if(i===8)spaceGame();
+}
+function backGames(){clearInterval(miniTimer);gameMenu()}
+function gameBack(){return '<button class="close-world" id="backGames">‹</button>'}
+function puzzleGame(){
+ const icons=['🌙','⭐','🪐','☀️','🚀','🌍','☄️','🛸','👽'];let shuffled=[...icons].sort(()=>Math.random()-.5);
+ worldBody.innerHTML='<div class="play-area"><div class="game-msg">그림을 원래 순서대로 맞춰보세요!</div><div class="puzzle-grid">'+shuffled.map((x,i)=>'<button class="puzzle-piece" data-p="'+i+'">'+x+'</button>').join('')+'</div><div id="pmsg">1번부터 순서대로!</div>'+gameBack()+'</div>';
+ let next=0;worldBody.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{if(+b.dataset.p===icons.indexOf(icons[next])){b.classList.add('done');next++;if(next===9){document.getElementById('pmsg').textContent='완성! ⭐';reward(5)}}else document.getElementById('pmsg').textContent='순서를 다시 찾아봐요!'});document.getElementById('backGames').onclick=backGames;
+}
+function colorGame(){
+ worldBody.innerHTML='<div class="play-area"><div class="game-msg">🎨 그림을 자유롭게 색칠해보세요!</div><canvas class="paint-canvas" id="paint" width="420" height="250"></canvas><div class="palette">'+['#ff6b81','#ffd45c','#66d9a8','#69a7ff','#9b7cff','#ff9f68'].map(x=>'<button class="color-dot" style="background:'+x+'" data-col="'+x+'"></button>').join('')+'</div><button id="paintDone">완성하기 ⭐</button> '+gameBack()+'</div>';
+ const cv=document.getElementById('paint'),ctx=cv.getContext('2d');ctx.lineWidth=24;ctx.lineCap='round';let drawing=false;
+ ctx.strokeStyle=paintColor;worldBody.querySelectorAll('[data-col]').forEach(b=>b.onclick=()=>{paintColor=b.dataset.col;ctx.strokeStyle=paintColor});
+ function pos(e){const r=cv.getBoundingClientRect(),p=e.touches?e.touches[0]:e;return{x:(p.clientX-r.left)*420/r.width,y:(p.clientY-r.top)*250/r.height}}
+ cv.onpointerdown=e=>{drawing=true;let p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};cv.onpointermove=e=>{if(!drawing)return;let p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke()};cv.onpointerup=()=>drawing=false;cv.onpointerleave=()=>drawing=false;
+ document.getElementById('paintDone').onclick=()=>{reward(5);notify('그림이 완성됐어요!')};document.getElementById('backGames').onclick=backGames;
+}
+function memoryGame(){
+ const a=['🍓','⭐','🪐','🚀','🍓','⭐','🪐','🚀'].sort(()=>Math.random()-.5);worldBody.innerHTML='<div class="play-area"><div class="game-msg">같은 그림 두 장을 찾아보세요!</div><div class="memory-grid">'+a.map((x,i)=>'<button class="memory-card" data-m="'+i+'">❔</button>').join('')+'</div><div id="mmsg">두 장을 골라요</div>'+gameBack()+'</div>';
+ let first=null,lock=false,found=0;worldBody.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(lock||b===first||b.classList.contains('found'))return;b.textContent=a[+b.dataset.m];if(!first){first=b;return}lock=true;if(first.textContent===b.textContent){first.classList.add('found');b.classList.add('found');found++;lock=false;first=null;if(found===4){mmsg.textContent='모두 찾았어요! ⭐';reward(5)}}else setTimeout(()=>{first.textContent='❔';b.textContent='❔';first=null;lock=false},600)});document.getElementById('backGames').onclick=backGames;
+}
+function balloonGame(){
+ worldBody.innerHTML='<div class="play-area"><div class="game-msg">🎈 풍선 10개를 터뜨려요!</div><div id="balloons"></div><div id="bmsg">0 / 10</div>'+gameBack()+'</div>';let n=0,box=document.getElementById('balloons');
+ function spawn(){const b=document.createElement('button');b.className='target';b.textContent=['🎈','🫧','⭐'][Math.floor(Math.random()*3)];b.style.left=Math.random()*80+'%';b.style.top=Math.random()*65+'%';b.onclick=()=>{n++;b.remove();document.getElementById('bmsg').textContent=n+' / 10';if(n>=10){reward(5);document.getElementById('bmsg').textContent='성공! ⭐'}else spawn()};box.appendChild(b)}
+ for(let i=0;i<3;i++)spawn();document.getElementById('backGames').onclick=backGames;
+}
+function fishingGame(){
+ worldBody.innerHTML='<div class="play-area"><div class="game-msg">🐟 물고기를 눌러 잡아보세요!</div><div class="catch-zone" id="pond"></div><div id="fmsg">5마리 잡기</div>'+gameBack()+'</div>';let n=0;
+ function fish(){const f=document.createElement('div');f.className='fish';f.textContent=['🐟','🐠','🐡'][Math.floor(Math.random()*3)];f.style.left=Math.random()*80+'%';f.style.top=Math.random()*70+'%';f.onclick=()=>{n++;f.remove();fishing();if(n>=5){reward(5);fmsg.textContent='대어를 잡았어요! ⭐'}};document.getElementById('pond').appendChild(f)}
+ function fishing(){if(n<5)setTimeout(fish,250)} fishing();document.getElementById('backGames').onclick=backGames;
+}
+function cookingGame(){
+ worldBody.innerHTML='<div class="play-area"><div class="game-msg">🍳 원하는 재료 3개를 골라 요리해요</div><div class="scene-alien" id="pot">🍲</div><div class="scene-actions">'+['🍓','🥕','🍳','🍞','🧀','🍌'].map(x=>'<button class="ingredient" data-ing>'+x+'</button>').join('')+'</div><div id="cookMsg">0 / 3</div>'+gameBack()+'</div>';let n=0;worldBody.querySelectorAll('[data-ing]').forEach(b=>b.onclick=()=>{n++;b.disabled=true;cookMsg.textContent=n+' / 3';if(n===3){pot.textContent='🍱';cookMsg.textContent='요리 완성! ⭐';reward(5)}});document.getElementById('backGames').onclick=backGames;
+}
+function cleanGame(){
+ worldBody.innerHTML='<div class="play-area"><div class="game-msg">🧹 더러운 곳 8개를 찾아 눌러주세요!</div><div id="cleanArea" style="height:280px;position:relative;background:white;border-radius:18px">🛋️ 🪴 🧸</div><div id="cmsg">0 / 8</div>'+gameBack()+'</div>';let n=0,a=document.getElementById('cleanArea');for(let i=0;i<8;i++){let d=document.createElement('button');d.className='clean-dot';d.textContent=['🫧','✨','🧹'][i%3];d.style.left=Math.random()*85+'%';d.style.top=Math.random()*75+'%';d.onclick=()=>{n++;d.remove();cmsg.textContent=n+' / 8';if(n===8){reward(5);cmsg.textContent='깨끗해졌어요! ⭐'}};a.appendChild(d)}document.getElementById('backGames').onclick=backGames;
+}
+function dressGame(){
+ worldBody.innerHTML='<div class="play-area"><div class="game-msg">👕 외계인에게 원하는 아이템을 입혀보세요</div><div class="dress-stage" id="dressStage">'+dress+'</div><div class="dress-items">'+['👑','🧢','🕶️','🎀','🧣','⭐'].map(x=>'<button data-dress>'+x+'</button>').join('')+'</div><div id="dmsg">아이템을 골라요</div>'+gameBack()+'</div>';worldBody.querySelectorAll('[data-dress]').forEach(b=>b.onclick=()=>{dress=b.textContent+'👽';dressStage.textContent=dress;dmsg.textContent='멋져요!';reward(1)});document.getElementById('backGames').onclick=backGames;
+}
+function spaceGame(){
+ const planets=['🪐','🌙','🌍','☀️'];worldBody.innerHTML='<div class="play-area"><div class="game-msg">🚀 어느 별로 탐험할까요?</div><div class="game-center">'+planets.map((x,i)=>'<button class="game-card" data-planet="'+i+'"><span class="gi">'+x+'</span><b>탐험하기</b><small>새로운 발견!</small></button>').join('')+'</div><div id="smsg"></div>'+gameBack()+'</div>';worldBody.querySelectorAll('[data-planet]').forEach(b=>b.onclick=()=>{smsg.textContent=['반짝이는 보석을 발견했어요!','달 토끼를 만났어요!','우주 꽃을 발견했어요!','새로운 별을 기록했어요!'][+b.dataset.planet]+' ⭐';reward(4)});document.getElementById('backGames').onclick=backGames;
+}
+document.querySelectorAll('[data-world]').forEach(b=>b.removeEventListener('click',()=>{}));
+document.querySelectorAll('[data-world="play"]').forEach(b=>b.onclick=gameMenu);
 </script>
 </body>
 </html>
