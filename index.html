@@ -395,6 +395,7 @@ button{font-family:inherit}.game-card{transition:transform .16s,box-shadow .16s}
   updateStatus(); updateNeeds();
   // Make the core game API available to the expanded game systems below.
   window.gameState = state;
+  window.alienNames = alienNames;
   window.gameUpdateStatus = updateStatus;
   window.gameUpdateNeeds = updateNeeds;
   window.gameNotify = notify;
@@ -405,6 +406,7 @@ const state = window.gameState;
 const updateStatus = window.gameUpdateStatus;
 const updateNeeds = window.gameUpdateNeeds;
 const notify = window.gameNotify;
+const alienNames = window.alienNames;
 const worldPanel=document.getElementById('worldPanel'), worldTitle=document.getElementById('worldTitle'), worldBody=document.getElementById('worldBody');
 const wardrobe=['🧢','👑','🕶️','🎩','🎀','🧣']; let outfit=0, coins=0;
 function currentFriend(){return state.friends[state.friends.length-1]||'mint'}
