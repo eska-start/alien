@@ -142,6 +142,24 @@
     });
   }
 
+  function pointerDragToDrop(items,drop,onDrop){
+    items.forEach(item=>{
+      item.addEventListener("pointerdown",e=>{
+        if(item.classList.contains("used")||item.classList.contains("locked"))return;
+        e.preventDefault();
+        const ghost=document.createElement("div");
+        ghost.textContent=item.textContent||"🎨";
+        ghost.style.cssText="position:fixed;z-index:9999;pointer-events:none;font-size:34px;transform:translate(-50%,-50%) scale(1.08);filter:drop-shadow(0 5px 8px #0004)";
+        document.body.appendChild(ghost);
+        const move=ev=>{ghost.style.left=ev.clientX+"px";ghost.style.top=ev.clientY+"px";drop.classList.toggle("over",inside(drop,ev.clientX,ev.clientY));};
+        const end=ev=>{document.removeEventListener("pointermove",move);document.removeEventListener("pointerup",end);const ok=inside(drop,ev.clientX,ev.clientY);ghost.remove();drop.classList.remove("over");if(ok)onDrop(item,drop);};
+        document.addEventListener("pointermove",move,{passive:false});document.addEventListener("pointerup",end,{once:true});
+        move(e);
+      });
+    });
+  }
+  function inside(el,x,y){const r=el.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;}
+
   function makeDraggable(el,board,onDrop){
     let sx=0,sy=0,ox=0,oy=0,moved=false;
     el.addEventListener("pointerdown",e=>{if(el.classList.contains("locked"))return;el.setPointerCapture(e.pointerId);sx=e.clientX;sy=e.clientY;const r=el.getBoundingClientRect();ox=r.left;oy=r.top;el.classList.add("dragging");});
