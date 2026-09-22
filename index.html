@@ -168,8 +168,7 @@ button{font-family:inherit}.game-card{transition:transform .16s,box-shadow .16s}
       <div class="aliens">
         <div class="alien a1" data-id="mint" aria-label="민트 외계인"><img class="alien-sprite" src="https://opengameart.org/sites/default/files/IDLE_0.PNG" alt="민트 외계인"></div>
         <div class="alien a2 hidden" data-id="violet" aria-label="보라 외계인"><img class="alien-sprite" src="https://opengameart.org/sites/default/files/IDLE_0.PNG" alt="보라 외계인"></div>
-        <div class="alien a3 hidden" data-id="pink" aria-label="핑크 외계인"><img class="alien-sprite" src="https://opengameart.org/sites/default/files/IDLE_0.PNG" alt="핑크 외계인"></div></div><div class="head"><i class="eye e1"></i><i class="eye e2"></i><i class="mouth"></i></div><div class="body"></div><i class="foot f1"></i><i class="foot f2"></i><span class="spark s1">✦</span><span class="spark s2">✦</span>
-        </div>
+        <div class="alien a3 hidden" data-id="pink" aria-label="핑크 외계인"><img class="alien-sprite" src="https://opengameart.org/sites/default/files/IDLE_0.PNG" alt="핑크 외계인"></div>
       </div>
       <div class="bubbles" id="bubbles"></div>
     </div>
@@ -203,6 +202,20 @@ button{font-family:inherit}.game-card{transition:transform .16s,box-shadow .16s}
       </div>
     </div>
 
+    <div class="activity-dock" aria-label="활동 메뉴">
+      <button class="activity-btn" data-world="care">🛁<small>돌보기</small></button>
+      <button class="activity-btn" data-world="dress">👕<small>꾸미기</small></button>
+      <button class="activity-btn" data-world="food">🍳<small>요리</small></button>
+      <button class="activity-btn" data-world="play">🎮<small>게임</small></button>
+      <button class="activity-btn" data-world="home">🪴<small>방꾸미기</small></button>
+      <button class="activity-btn" data-world="world">🚀<small>외출</small></button>
+    </div>
+    <div class="world-panel" id="worldPanel">
+      <div class="world-card">
+        <div class="world-head"><h2 id="worldTitle">게임</h2><button class="close-world" id="closeWorld" aria-label="닫기">×</button></div>
+        <div id="worldBody"></div>
+      </div>
+    </div>
     <div class="discovery" id="discovery">
       <div class="discovery-card"><div class="discovery-icon" id="discoveryIcon">✨</div><h2 id="discoveryTitle">새로운 발견!</h2><p id="discoveryText">외계인 친구가 좋아하는 장소를 알아냈어요.</p><button class="discovery-btn" id="discoveryBtn">계속 놀기</button></div>
     </div>
@@ -380,9 +393,18 @@ button{font-family:inherit}.game-card{transition:transform .16s,box-shadow .16s}
   });
 
   updateStatus(); updateNeeds();
+  // Make the core game API available to the expanded game systems below.
+  window.gameState = state;
+  window.gameUpdateStatus = updateStatus;
+  window.gameUpdateNeeds = updateNeeds;
+  window.gameNotify = notify;
 })();
 
 // Expanded virtual-pet world: care, dress-up, cooking, minigames, home and exploration.
+const state = window.gameState;
+const updateStatus = window.gameUpdateStatus;
+const updateNeeds = window.gameUpdateNeeds;
+const notify = window.gameNotify;
 const worldPanel=document.getElementById('worldPanel'), worldTitle=document.getElementById('worldTitle'), worldBody=document.getElementById('worldBody');
 const wardrobe=['🧢','👑','🕶️','🎩','🎀','🧣']; let outfit=0, coins=0;
 function currentFriend(){return state.friends[state.friends.length-1]||'mint'}
