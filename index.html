@@ -136,7 +136,7 @@ button{font:inherit;border:0}
 </style><style id="polish-layer">
 :root{--kid:#6e7bf7;--gold:#ffc94d}
 button{font-family:inherit}.game-card{transition:transform .16s,box-shadow .16s}.game-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px #45507018}.play-area{box-shadow:inset 0 0 0 2px #fff}.score-pop{position:fixed;z-index:150;pointer-events:none;font-size:24px;font-weight:1000;animation:scorePop .9s forwards}@keyframes scorePop{0%{opacity:0;transform:translateY(15px) scale(.7)}25%{opacity:1}100%{opacity:0;transform:translateY(-55px) scale(1.1)}}.toast{z-index:160}.collection{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.collect-item{background:#f7f8fd;border-radius:16px;padding:10px;text-align:center;font-size:28px}.collect-item small{display:block;font-size:9px;font-weight:900;color:#747b91;margin-top:4px}.locked{filter:grayscale(1);opacity:.45}.stage-badge{display:inline-block;background:#fff;border-radius:12px;padding:6px 10px;font-size:10px;font-weight:1000;margin:5px}
-</style></head>
+</style><style id="door-entry-fix">.door{transform-origin:left bottom;transition:transform .5s cubic-bezier(.2,.8,.2,1)}.door.door-open{transform:perspective(500px) rotateY(-72deg)}</style></head>
 <body>
 <div id="app">
   <div class="game">
@@ -343,9 +343,7 @@ button{font-family:inherit}.game-card{transition:transform .16s,box-shadow .16s}
   },4000);
 
   document.getElementById('discoveryBtn').addEventListener('click',()=>discovery.classList.remove('show'));
-  document.getElementById('startBtn').addEventListener('click',()=>{
-    start.classList.remove('show'); invite('mint');
-  });
+  document.getElementById('startBtn').addEventListener('click',()=>{\n    const door=document.querySelector('.door');\n    const btn=document.getElementById('startBtn');\n    btn.disabled=true; btn.textContent='문이 열리는 중…';\n    door.classList.add('door-open');\n    setTimeout(()=>{\n      start.classList.remove('show'); door.classList.remove('door-open');\n      invite('mint'); say('안녕! 반가워!', '12%', '34%');\n      btn.disabled=false; btn.textContent='문 열어주기';\n    },650);\n  });
   document.querySelectorAll('.action').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const action=btn.dataset.action;
