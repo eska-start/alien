@@ -46,7 +46,7 @@ button{font:inherit;border:0}
 .zone.food{left:38%;bottom:15%;width:17%;height:12%;border-radius:24px;border:3px dashed rgba(110,123,247,.28)}
 .zone.play{left:47%;top:45%;width:16%;height:13%;border-radius:24px;border:3px dashed rgba(255,143,182,.25)}
 .zone.sleep{right:8%;bottom:8%;width:24%;height:13%;border-radius:24px;border:3px dashed rgba(115,223,192,.22)}
-.zone span{background:#ffffffcc;padding:5px 8px;border-radius:10px}
+.zone span{background:#ffffffcc;padding:5px 8px;border-radius:10px}.zone.active{animation:zonePulse .7s infinite alternate;border-color:#6e7bf7}.needs.low{animation:needPulse 1s infinite alternate}@keyframes zonePulse{to{transform:scale(1.08)}}@keyframes needPulse{to{transform:scale(1.03)}}
 .aliens{position:absolute;left:31%;right:29%;top:31%;bottom:18%;pointer-events:none}
 .alien{position:absolute;width:108px;height:132px;pointer-events:auto;touch-action:none;cursor:grab;filter:drop-shadow(0 13px 12px rgba(70,82,130,.17));transition:transform .25s ease}
 .alien:active{cursor:grabbing;transform:scale(1.04)}
@@ -69,6 +69,7 @@ button{font:inherit;border:0}
 @keyframes pop{12%,72%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-7px) scale(.97)}}
 .controls{position:absolute;z-index:40;left:18px;right:18px;bottom:18px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 .hint{background:#ffffffed;box-shadow:var(--shadow);border-radius:20px;padding:12px 15px;font-size:13px;font-weight:800;color:var(--muted);max-width:340px}
+.needs{position:absolute;z-index:36;right:18px;top:88px;width:190px;background:#ffffffed;border-radius:18px;padding:10px 12px;box-shadow:var(--shadow);font-size:11px;font-weight:900}.need-title{margin-bottom:6px}.need-row{display:flex;align-items:center;gap:6px;margin:5px 0}.need-row>span{width:58px;color:var(--muted)}.need-row i{display:block;flex:1;height:7px;background:#edf0f8;border-radius:8px;overflow:hidden}.need-row b{display:block;width:70%;height:100%;background:#6e7bf7;border-radius:8px;transition:.35s}
 .mission{position:absolute;z-index:35;left:50%;top:88px;transform:translateX(-50%);background:#fff;border-radius:20px;padding:10px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;min-width:280px}
 .mission b{font-size:13px}.mission small{display:block;color:var(--muted);font-weight:800;margin-top:2px}
 .mission .progress{width:58px;height:8px;background:#edf0f8;border-radius:8px;overflow:hidden}.mission .progress i{display:block;height:100%;width:0;background:#6e7bf7;border-radius:8px;transition:.3s}
@@ -106,7 +107,7 @@ button{font:inherit;border:0}
  .alien.a1{left:0;top:38%}.alien.a2{left:35%;top:15%}.alien.a3{right:-2%;top:43%}
  .controls{bottom:max(10px,env(safe-area-inset-bottom));left:10px;right:10px}.hint{font-size:11px;padding:10px;max-width:220px}.actions{gap:7px}.action{width:55px;height:55px;border-radius:18px;font-size:24px}
  .cards{grid-template-columns:1fr 1fr}.start-card{padding:24px}.start-card h1{font-size:27px}
- .zone{font-size:10px}
+ .zone{font-size:10px}.mission{top:76px;min-width:245px;padding:8px 10px}.needs{top:130px;right:10px;width:170px}.mission small{font-size:10px}
 }
 </style>
 </head>
@@ -152,6 +153,13 @@ button{font:inherit;border:0}
       <div class="bubbles" id="bubbles"></div>
     </div>
 
+    <div class="needs" id="needs">
+      <div class="need-title">👽 지금 민트는?</div>
+      <div class="need-row"><span>🍖 배고픔</span><i><b id="hungerBar"></b></i></div>
+      <div class="need-row"><span>🎈 심심함</span><i><b id="boredBar"></b></i></div>
+      <div class="need-row"><span>💤 졸림</span><i><b id="sleepBar"></b></i></div>
+    </div>
+
     <div class="controls">
       <div class="hint">외계인을 꾹 눌러서<br>원하는 곳으로 데려가 보세요!</div>
       <div class="actions">
@@ -193,6 +201,7 @@ button{font:inherit;border:0}
 (() => {
   const state = {
     friends: ['mint'], stars: 0, day: 1, mission: 0,
+    needs: {mint:{hunger:78,bored:62,sleep:42},violet:{hunger:65,bored:72,sleep:35},pink:{hunger:70,bored:58,sleep:68}},
     missions: [
       {title:'민트에게 간식을 주세요',desc:'민트를 🍓 간식 장소로 데려가세요',type:'food',id:'mint'},
       {title:'민트와 놀아 주세요',desc:'민트를 🧸 놀이 장소로 데려가세요',type:'play',id:'mint'},
@@ -223,7 +232,14 @@ button{font:inherit;border:0}
   const discoveryIcon = document.getElementById('discoveryIcon');
   const discoveryTitle = document.getElementById('discoveryTitle');
   const discoveryText = document.getElementById('discoveryText');
+  const hungerBar=document.getElementById('hungerBar'), boredBar=document.getElementById('boredBar'), sleepBar=document.getElementById('sleepBar'), needsBox=document.getElementById('needs');
 
+  function updateNeeds(){
+    const id=state.friends[state.friends.length-1]||'mint', n=state.needs[id];
+    hungerBar.style.width=n.hunger+'%'; boredBar.style.width=n.bored+'%'; sleepBar.style.width=n.sleep+'%';
+    needsBox.querySelector('.need-title').textContent='👽 '+alienNames[id]+'는 지금?';
+    needsBox.classList.toggle('low',Math.min(n.hunger,n.bored,n.sleep)<25);
+  }
   function updateStatus(){
     friendCount.textContent = '친구 ' + state.friends.length + '명';
     starCount.textContent = '⭐ ' + state.stars;
@@ -241,7 +257,7 @@ button{font:inherit;border:0}
     } else if(m.type==='invite'){
       showDiscovery('👽','새로운 친구를 만났어요!','친구마다 좋아하는 장소가 달라요. 같이 지내면서 좋아하는 것을 찾아보세요.');
     }
-    updateStatus();
+    updateStatus(); updateNeeds();
   }
   function showDiscovery(icon,title,text){
     discoveryIcon.textContent=icon; discoveryTitle.textContent=title; discoveryText.textContent=text; discovery.classList.add('show');
@@ -275,11 +291,22 @@ button{font:inherit;border:0}
     el.classList.add('happy');
     say(msgs[idx], Math.min(74, el.offsetLeft/room.clientWidth*100)+'%', Math.max(18,el.offsetTop/room.clientHeight*100-7)+'%');
     setTimeout(()=>el.classList.remove('happy'),900);
+    const n=state.needs[id];
+    if(type==='food') n.hunger=Math.min(100,n.hunger+32);
+    if(type==='play') n.bored=Math.min(100,n.bored+34);
+    if(type==='sleep') n.sleep=Math.min(100,n.sleep+38);
     state.stars += 1;
     const m=state.missions[state.mission];
     if(m && m.type===type && m.id===id) completeMission();
-    updateStatus();
+    updateStatus(); updateNeeds();
   }
+
+  setInterval(()=>{
+    state.friends.forEach(id=>{
+      const n=state.needs[id]; n.hunger=Math.max(0,n.hunger-1); n.bored=Math.max(0,n.bored-1); n.sleep=Math.max(0,n.sleep-0.7);
+    });
+    updateNeeds();
+  },4000);
 
   document.getElementById('discoveryBtn').addEventListener('click',()=>discovery.classList.remove('show'));
   document.getElementById('startBtn').addEventListener('click',()=>{
@@ -331,7 +358,7 @@ button{font:inherit;border:0}
     });
   });
 
-  updateStatus();
+  updateStatus(); updateNeeds();
 })();
 </script>
 </body>
