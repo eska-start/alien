@@ -41,34 +41,255 @@
 <div id="start" class="overlay"><section class="card start"><div class="ufo">🛸</div><h1>외계인이 놀러 왔어요!</h1><p>문을 열고 새로운 친구와 방에서 놀아주세요.</p><button class="primary" id="startBtn" onclick="document.getElementById('start').style.display='none'">문 열어주기</button></section></div>
 </main></div>
 <script>
-(function(){
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={stars:0,friends:['mint'],needs:{hunger:78,bored:62,sleep:42}};
-function save(){localStorage.setItem('alien-bong-v1',JSON.stringify(state))}
-function reward(n){state.stars+=n;$('#stars').textContent='⭐ '+state.stars;save()}
-function updateNeeds(){['hunger','bored','sleep'].forEach(k=>$('#'+k).style.width=state.needs[k]+'%')}
-function openPanel(title,html){$('#title').textContent=title;$('#body').innerHTML=html;$('#panel').classList.remove('hidden-panel')}
-function closePanel(){$('#panel').classList.add('hidden-panel')}
-$('#close').onclick=closePanel;
-$('#startBtn').onclick=()=>{$('#start').classList.add('hidden-panel');save()};
-$$('[data-open]').forEach(b=>b.onclick=()=>openActivity(b.dataset.open));
-function openActivity(type){
-if(type==='games')return gameMenu();
-const data={care:['🛁 돌보기','<div class="stage"><h2>외계인을 돌봐요</h2><p>원하는 행동을 골라 상태를 회복하세요.</p><button class="primary act" data-a="bath">🛁 목욕하기</button><br><br><button class="primary act" data-a="brush">✨ 빗질하기</button><br><br><button class="primary act" data-a="sleep">😴 낮잠 재우기</button></div>'],dress:['👕 꾸미기','<div class="stage"><h2>오늘의 코디</h2><div style="font-size:110px">👽</div><button class="primary dress">👑 왕관</button><br><br><button class="primary dress">🎀 리본</button></div>'],food:['🍳 요리','<div class="stage"><h2>샌드위치 만들기</h2><p>재료를 순서대로 3개 선택하세요.</p><div class="materials"><button>🍞</button><button>🥬</button><button>🧀</button><button>🍅</button><button>🥚</button></div><div class="msg" id="foodMsg">0 / 3</div></div>'],home:['🪴 방꾸미기','<div class="stage"><h2>방에 장식을 놓아요</h2><div style="font-size:100px">🏠</div><button class="primary homeitem">🪴 화분 놓기</button><br><br><button class="primary homeitem">⭐ 별 장식 놓기</button></div>']}[type];
-openPanel(data[0],data[1]);
-if(type==='care')$$('.act').forEach(b=>b.onclick=()=>{state.needs.sleep=Math.min(100,state.needs.sleep+35);if(b.dataset.a==='sleep')state.needs.sleep=100;reward(1);updateNeeds()});
-if(type==='food'){let n=0;$$('.materials button').forEach(b=>b.onclick=()=>{if(b.disabled)return;b.disabled=true;n++;$('#foodMsg').textContent=n+' / 3';if(n===3){state.needs.hunger=100;reward(5);$('#foodMsg').textContent='요리 완성! ⭐ +5'}updateNeeds()})}
-if(type==='dress'||type==='home')$$('.dress,.homeitem').forEach(b=>b.onclick=()=>reward(1));
-}
-function gameMenu(){openPanel('🎮 게임 놀이터','<div class="menu"><button class="gamecard" data-g="p"><img src="assets/puzzle-room.svg"><div><b>🧩 그림 퍼즐</b><small>8조각을 직접 움직여 완성</small></div></button><button class="gamecard" data-g="d"><img src="assets/difference-room.svg"><div><b>🔎 틀린 그림 찾기</b><small>다른 곳 5개를 찾아요</small></div></button><button class="gamecard" data-g="b"><img src="assets/build-town.svg"><div><b>🏠 마을 만들기</b><small>재료를 순서대로 모아 건설</small></div></button><button class="gamecard" data-g="c"><img src="assets/coloring-space.svg"><div><b>🎨 색칠 공부</b><small>그림의 영역을 직접 색칠</small></div></button><button class="gamecard" data-g="m"><img src="assets/puzzle-room.svg"><div><b>🧠 기억 챌린지</b><small>6쌍을 찾아요</small></div></button></div>');$$('[data-g]').forEach(b=>b.onclick=()=>games[b.dataset.g]())}
-const games={p:()=>puzzle(),d:()=>difference(),b:()=>building(),c:()=>coloring(),m:()=>memory()};
-function stage(title,sub){openPanel(title,'<div class="stage"><button class="back" id="back">‹ 게임</button><h2>'+title+'</h2><p>'+sub+'</p><div id="stageBody"></div></div>');$('#back').onclick=gameMenu;return $('#stageBody')}
-function puzzle(){const c=stage('🧩 그림 퍼즐','빈칸 옆 조각을 눌러 그림을 완성하세요.');let a=[0,1,2,3,4,5,6,7,8],moves=0;do{a.sort(()=>Math.random()-.5)}while(!solve(a)||a.every((v,i)=>v===i));function solve(x){let n=0;for(let i=0;i<8;i++)for(let j=i+1;j<9;j++)if(x[i]!==8&&x[j]!==8&&x[i]>x[j])n++;return n%2===0}function draw(){c.innerHTML='<div class="puzzle">'+a.map((v,i)=>v===8?'<div class="piece empty"></div>':'<button class="piece" style="background-position:'+((v%3)*50)+'% '+(Math.floor(v/3)*50)+'%" data-i="'+i+'"></button>').join('')+'</div><div class="stat">'+moves+'번 이동</div><div class="msg" id="pm"></div>';$$('[data-i]').forEach(x=>x.onclick=()=>move(+x.dataset.i))}function move(i){let e=a.indexOf(8),d=Math.abs(Math.floor(i/3)-Math.floor(e/3))+Math.abs(i%3-e%3);if(d!==1){$('#pm').textContent='빈칸 옆 조각만 움직여요.';return}[a[i],a[e]]=[a[e],a[i]];moves++;draw();if(a.every((v,j)=>v===j)){ $('#pm').textContent='퍼즐 완성! ⭐ +10';$('#pm').className='msg ok';reward(10)}}}draw()}
-function difference(){const c=stage('🔎 틀린 그림 찾기','오른쪽 그림에서 다른 곳 5개를 찾아보세요.');const spots=[[20,25],[72,30],[48,61],[82,74],[29,78]];c.innerHTML='<div class="diff"><div class="pane"><img src="assets/difference-room.svg"></div><div class="pane" id="dr"><img src="assets/difference-room.svg"></div></div><div class="stat" id="ds">0 / 5</div>';let found=0;spots.forEach((p,i)=>{const x=document.createElement('button');x.className='hot';x.style.left=p[0]+'%';x.style.top=p[1]+'%';x.onclick=()=>{if(x.classList.contains('found'))return;x.classList.add('found');found++;$('#ds').textContent=found+' / 5';if(found===5){$('#ds').textContent='모두 찾았어요! ⭐ +12';reward(12)}};$('#dr').appendChild(x)})}
-function building(){const c=stage('🏠 마을 만들기','기초부터 지붕까지 순서대로 집을 지어보세요.');let n=0;const names=['기초','벽','지붕','창문','문'];c.innerHTML='<div class="build"><i class="part foundation"></i><i class="part wall"></i><i class="part roof"></i><i class="part win"></i><i class="part bdoor"></i></div><div class="materials">'+names.map((x,i)=>'<button data-build="'+i+'">'+['🧱','🧱','🔺','🪟','🚪'][i]+'<br><small>'+x+'</small></button>').join('')+'</div><div class="msg" id="bm">기초부터 시작!</div>';$$('[data-build]').forEach(b=>b.onclick=()=>{let i=+b.dataset.build;if(i!==n){$('#bm').textContent='지금은 '+names[n]+'을(를) 지어야 해요.';return}c.querySelectorAll('.part')[i].style.display='block';b.classList.add('used');n++;$('#bm').textContent=n===5?'집 완성! ⭐ +15':'다음 단계로!';if(n===5)reward(15)})}
-function coloring(){const c=stage('🎨 색칠 공부','색을 고르고 그림 영역을 눌러 색칠하세요.');let col='#ff8eb4',done=new Set();c.innerHTML='<div class="colorbook"><svg viewBox="0 0 900 600"><rect width="900" height="600" rx="30" fill="#eef2ff"/><path class="region" data-r="g" d="M0 470Q220 400 450 470t450 0v130H0z" fill="white"/><circle class="region" data-r="p" cx="450" cy="290" r="175" fill="white"/><path class="region" data-r="b" d="M380 185q70-70 140 0v230q-70 70-140 0z" fill="white"/><circle class="region" data-r="w" cx="450" cy="290" r="68" fill="white"/><path class="region" data-r="s" d="M720 120l14 36 39 3-30 25 10 38-33-21-33 21 10-38-30-25 39-3z" fill="white"/><path class="region" data-r="a" d="M442 185V105h16v80z" fill="white"/><circle cx="428" cy="275" r="13"/><circle cx="472" cy="275" r="13"/><path d="M430 315q20 18 40 0" fill="none" stroke="#26324a" stroke-width="7"/></svg></div><div class="palette">'+['#ff7fa7','#ffd45c','#72d8c0','#7c9cff','#b38cff','#ff9b63','#8fd0e8'].map(x=>'<button class="swatch" style="background:'+x+'" data-col="'+x+'"></button>').join('')+'</div><div class="stat" id="cs">0 / 6</div>';$$('[data-col]').forEach(x=>x.onclick=()=>{col=x.dataset.col;$$('[data-col]').forEach(y=>y.classList.remove('selected'));x.classList.add('selected')});c.querySelectorAll('[data-r]').forEach(x=>x.onclick=()=>{x.setAttribute('fill',col);done.add(x.dataset.r);$('#cs').textContent=done.size+' / 6';if(done.size===6){$('#cs').textContent='작품 완성! ⭐ +10';reward(10)}})}
-function memory(){const c=stage('🧠 기억 챌린지','같은 그림 6쌍을 모두 찾아보세요.');const vals=['🌙','⭐','🪐','🚀','🌈','🌱','🌙','⭐','🪐','🚀','🌈','🌱'].sort(()=>Math.random()-.5);let first=null,lock=false,found=0;c.innerHTML='<div class="memory">'+vals.map((x,i)=>'<button data-m="'+i+'">❔</button>').join('')+'</div><div class="stat" id="ms">0 / 6</div>';$$('[data-m]').forEach(b=>b.onclick=()=>{if(lock||b.classList.contains('done')||b===first)return;let i=+b.dataset.m;b.textContent=vals[i];b.classList.add('open');if(!first){first=b;return}lock=true;if(first.textContent===b.textContent){first.classList.add('done');b.classList.add('done');found++;first=null;lock=false;$('#ms').textContent=found+' / 6';if(found===6){$('#ms').textContent='전부 맞췄어요! ⭐ +12';reward(12)}}else setTimeout(()=>{first.textContent='❔';b.textContent='❔';first.classList.remove('open');b.classList.remove('open');first=null;lock=false},550)})}
-try{const old=JSON.parse(localStorage.getItem('alien-bong-v1'));if(old){state.stars=old.stars||0;state.needs=old.needs||state.needs;$('#stars').textContent='⭐ '+state.stars}}catch(e){}updateNeeds();
+(() => {
+  const $ = (q) => document.querySelector(q);
+  const $$ = (q) => Array.from(document.querySelectorAll(q));
+  const state = { stars: 0, needs: { hunger: 78, bored: 62, sleep: 42 } };
+
+  function save() {
+    localStorage.setItem("alien-bong-v1", JSON.stringify(state));
+  }
+  function reward(n) {
+    state.stars += n;
+    $("#stars").textContent = "⭐ " + state.stars;
+    save();
+  }
+  function updateNeeds() {
+    ["hunger","bored","sleep"].forEach((k) => {
+      $("#" + k).style.width = state.needs[k] + "%";
+    });
+  }
+  function openPanel(title, html) {
+    $("#title").textContent = title;
+    $("#body").innerHTML = html;
+    $("#panel").classList.remove("hidden-panel");
+  }
+  function closePanel() {
+    $("#panel").classList.add("hidden-panel");
+  }
+
+  $("#startBtn").addEventListener("click", () => {
+    $("#start").classList.add("hidden-panel");
+    save();
+  });
+  $("#close").addEventListener("click", closePanel);
+
+  $$(".dock button").forEach((button) => {
+    button.addEventListener("click", () => openActivity(button.dataset.open));
+  });
+
+  function openActivity(type) {
+    if (type === "games") {
+      gameMenu();
+      return;
+    }
+    const titles = {care:"🛁 돌보기", dress:"👕 꾸미기", food:"🍳 요리", home:"🪴 방꾸미기"};
+    const html = {
+      care: '<div class="stage"><h2>외계인을 돌봐요</h2><p>원하는 행동을 골라 상태를 회복하세요.</p><button class="primary act">🛁 목욕하기</button><br><br><button class="primary act">✨ 빗질하기</button><br><br><button class="primary act">😴 낮잠 재우기</button></div>',
+      dress: '<div class="stage"><h2>오늘의 코디</h2><div style="font-size:110px">👽</div><button class="primary dress">👑 왕관</button><br><br><button class="primary dress">🎀 리본</button></div>',
+      food: '<div class="stage"><h2>샌드위치 만들기</h2><p>재료를 3개 선택하세요.</p><div class="materials"><button>🍞</button><button>🥬</button><button>🧀</button><button>🍅</button><button>🥚</button></div><div class="msg" id="foodMsg">0 / 3</div></div>',
+      home: '<div class="stage"><h2>방에 장식을 놓아요</h2><div style="font-size:100px">🏠</div><button class="primary homeitem">🪴 화분 놓기</button><br><br><button class="primary homeitem">⭐ 별 장식 놓기</button></div>'
+    };
+    openPanel(titles[type], html[type]);
+    if (type === "care") {
+      $$(".act").forEach((b) => b.addEventListener("click", () => {
+        state.needs.sleep = Math.min(100, state.needs.sleep + 35);
+        state.needs.bored = Math.min(100, state.needs.bored + 20);
+        reward(1);
+        updateNeeds();
+      }));
+    }
+    if (type === "food") {
+      let n = 0;
+      $$(".materials button").forEach((b) => b.addEventListener("click", () => {
+        if (b.disabled) return;
+        b.disabled = true;
+        n++;
+        $("#foodMsg").textContent = n + " / 3";
+        if (n === 3) {
+          state.needs.hunger = 100;
+          $("#foodMsg").textContent = "요리 완성! ⭐ +5";
+          reward(5);
+          updateNeeds();
+        }
+      }));
+    }
+    if (type === "dress" || type === "home") {
+      $$(".dress,.homeitem").forEach((b) => b.addEventListener("click", () => reward(1)));
+    }
+  }
+
+  function gameMenu() {
+    openPanel("🎮 게임 놀이터",
+      '<div class="menu">' +
+      '<button class="gamecard" data-game="p"><img src="assets/puzzle-room.svg"><div><b>🧩 그림 퍼즐</b><small>8조각을 직접 움직여 완성</small></div></button>' +
+      '<button class="gamecard" data-game="d"><img src="assets/difference-room.svg"><div><b>🔎 틀린 그림 찾기</b><small>다른 곳 5개를 찾아요</small></div></button>' +
+      '<button class="gamecard" data-game="b"><img src="assets/build-town.svg"><div><b>🏠 마을 만들기</b><small>순서대로 집을 건설해요</small></div></button>' +
+      '<button class="gamecard" data-game="c"><img src="assets/coloring-space.svg"><div><b>🎨 색칠 공부</b><small>그림 영역을 직접 색칠</small></div></button>' +
+      '<button class="gamecard" data-game="m"><img src="assets/puzzle-room.svg"><div><b>🧠 기억 챌린지</b><small>같은 그림 6쌍 찾기</small></div></button>' +
+      '</div>'
+    );
+    $$("[data-game]").forEach((b) => b.addEventListener("click", () => {
+      const g = b.dataset.game;
+      if (g === "p") puzzle();
+      if (g === "d") difference();
+      if (g === "b") building();
+      if (g === "c") coloring();
+      if (g === "m") memory();
+    }));
+  }
+
+  function stage(title, sub) {
+    openPanel(title, '<div class="stage"><button class="back" id="back">‹ 게임</button><h2>' + title + '</h2><p>' + sub + '</p><div id="stageBody"></div></div>');
+    $("#back").addEventListener("click", gameMenu);
+    return $("#stageBody");
+  }
+
+  function puzzle() {
+    const body = stage("🧩 그림 퍼즐", "빈칸 옆 조각을 눌러 그림을 완성하세요.");
+    let board = [0,1,2,3,4,5,6,7,8];
+    let moves = 0;
+    do { board.sort(() => Math.random() - 0.5); } while (!solvable(board) || board.every((v,i) => v === i));
+    function solvable(a) {
+      let inv = 0;
+      for (let i=0;i<9;i++) for (let j=i+1;j<9;j++) if (a[i] !== 8 && a[j] !== 8 && a[i] > a[j]) inv++;
+      return inv % 2 === 0;
+    }
+    function draw() {
+      body.innerHTML = '<div class="puzzle">' + board.map((v,i) => {
+        if (v === 8) return '<div class="piece empty"></div>';
+        return '<button class="piece" data-i="' + i + '" style="background-position:' + ((v%3)*50) + '% ' + (Math.floor(v/3)*50) + '%"></button>';
+      }).join("") + '</div><div class="stat">' + moves + '번 이동</div><div class="msg" id="pm"></div>';
+      $$("[data-i]").forEach((b) => b.addEventListener("click", () => move(Number(b.dataset.i))));
+    }
+    function move(i) {
+      const e = board.indexOf(8);
+      const dist = Math.abs(Math.floor(i/3)-Math.floor(e/3)) + Math.abs(i%3-e%3);
+      if (dist !== 1) {
+        $("#pm").textContent = "빈칸 옆 조각만 움직여요.";
+        return;
+      }
+      [board[i],board[e]] = [board[e],board[i]];
+      moves++;
+      draw();
+      if (board.every((v,j) => v === j)) {
+        $("#pm").textContent = "퍼즐 완성! ⭐ +10";
+        reward(10);
+      }
+    }
+    draw();
+  }
+
+  function difference() {
+    const body = stage("🔎 틀린 그림 찾기", "오른쪽 그림에서 다른 곳 5개를 찾아보세요.");
+    const spots = [[20,25],[72,30],[48,61],[82,74],[29,78]];
+    body.innerHTML = '<div class="diff"><div class="pane"><img src="assets/difference-room.svg"></div><div class="pane" id="dr"><img src="assets/difference-room.svg"></div></div><div class="stat" id="ds">0 / 5</div>';
+    let found = 0;
+    spots.forEach((p) => {
+      const b = document.createElement("button");
+      b.className = "hot";
+      b.style.left = p[0] + "%";
+      b.style.top = p[1] + "%";
+      b.addEventListener("click", () => {
+        if (b.classList.contains("found")) return;
+        b.classList.add("found");
+        found++;
+        $("#ds").textContent = found + " / 5";
+        if (found === 5) {
+          $("#ds").textContent = "모두 찾았어요! ⭐ +12";
+          reward(12);
+        }
+      });
+      $("#dr").appendChild(b);
+    });
+  }
+
+  function building() {
+    const body = stage("🏠 마을 만들기", "기초부터 지붕까지 순서대로 집을 지어보세요.");
+    const names = ["기초","벽","지붕","창문","문"];
+    let step = 0;
+    body.innerHTML = '<div class="build"><i class="part foundation"></i><i class="part wall"></i><i class="part roof"></i><i class="part win"></i><i class="part bdoor"></i></div><div class="materials">' +
+      names.map((n,i) => '<button data-build="' + i + '">' + ["🧱","🧱","🔺","🪟","🚪"][i] + '<br><small>' + n + '</small></button>').join("") +
+      '</div><div class="msg" id="bm">기초부터 시작!</div>';
+    $$("[data-build]").forEach((b) => b.addEventListener("click", () => {
+      const i = Number(b.dataset.build);
+      if (i !== step) {
+        $("#bm").textContent = "지금은 " + names[step] + "을(를) 지어야 해요.";
+        return;
+      }
+      body.querySelectorAll(".part")[i].style.display = "block";
+      b.classList.add("used");
+      step++;
+      $("#bm").textContent = step === 5 ? "집 완성! ⭐ +15" : "다음 단계로!";
+      if (step === 5) reward(15);
+    }));
+  }
+
+  function coloring() {
+    const body = stage("🎨 색칠 공부", "색을 고르고 그림 영역을 눌러 색칠하세요.");
+    let color = "#ff8eb4";
+    const done = new Set();
+    body.innerHTML = '<div class="colorbook"><svg viewBox="0 0 900 600"><rect width="900" height="600" rx="30" fill="#eef2ff"/><path class="region" data-r="g" d="M0 470Q220 400 450 470t450 0v130H0z" fill="white"/><circle class="region" data-r="p" cx="450" cy="290" r="175" fill="white"/><path class="region" data-r="b" d="M380 185q70-70 140 0v230q-70 70-140 0z" fill="white"/><circle class="region" data-r="w" cx="450" cy="290" r="68" fill="white"/><path class="region" data-r="s" d="M720 120l14 36 39 3-30 25 10 38-33-21-33 21 10-38-30-25 39-3z" fill="white"/><path class="region" data-r="a" d="M442 185V105h16v80z" fill="white"/><circle cx="428" cy="275" r="13"/><circle cx="472" cy="275" r="13"/><path d="M430 315q20 18 40 0" fill="none" stroke="#26324a" stroke-width="7"/></svg></div><div class="palette">' +
+      ["#ff7fa7","#ffd45c","#72d8c0","#7c9cff","#b38cff","#ff9b63","#8fd0e8"].map((x) => '<button class="swatch" style="background:' + x + '" data-col="' + x + '"></button>').join("") +
+      '</div><div class="stat" id="cs">0 / 6</div>';
+    $$("[data-col]").forEach((b) => b.addEventListener("click", () => { color = b.dataset.col; }));
+    body.querySelectorAll("[data-r]").forEach((r) => r.addEventListener("click", () => {
+      r.setAttribute("fill", color);
+      done.add(r.dataset.r);
+      $("#cs").textContent = done.size + " / 6";
+      if (done.size === 6) {
+        $("#cs").textContent = "작품 완성! ⭐ +10";
+        reward(10);
+      }
+    }));
+  }
+
+  function memory() {
+    const body = stage("🧠 기억 챌린지", "같은 그림 6쌍을 모두 찾아보세요.");
+    const values = ["🌙","⭐","🪐","🚀","🌈","🌱","🌙","⭐","🪐","🚀","🌈","🌱"].sort(() => Math.random() - 0.5);
+    let first = null, lock = false, found = 0;
+    body.innerHTML = '<div class="memory">' + values.map((v,i) => '<button data-memory="' + i + '">❔</button>').join("") + '</div><div class="stat" id="ms">0 / 6</div>';
+    $$("[data-memory]").forEach((b) => b.addEventListener("click", () => {
+      if (lock || b.classList.contains("done") || b === first) return;
+      const i = Number(b.dataset.memory);
+      b.textContent = values[i];
+      b.classList.add("open");
+      if (!first) { first = b; return; }
+      lock = true;
+      if (first.textContent === b.textContent) {
+        first.classList.add("done");
+        b.classList.add("done");
+        found++;
+        first = null;
+        lock = false;
+        $("#ms").textContent = found + " / 6";
+        if (found === 6) {
+          $("#ms").textContent = "전부 맞췄어요! ⭐ +12";
+          reward(12);
+        }
+      } else {
+        const old = first;
+        setTimeout(() => {
+          old.textContent = "❔";
+          b.textContent = "❔";
+          old.classList.remove("open");
+          b.classList.remove("open");
+          first = null;
+          lock = false;
+        }, 550);
+      }
+    }));
+  }
+
+  try {
+    const old = JSON.parse(localStorage.getItem("alien-bong-v1"));
+    if (old) {
+      state.stars = old.stars || 0;
+      state.needs = old.needs || state.needs;
+      $("#stars").textContent = "⭐ " + state.stars;
+    }
+  } catch (e) {}
+  updateNeeds();
 })();
 </script>
 </body>
