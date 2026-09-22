@@ -343,7 +343,17 @@ button{font-family:inherit}.game-card{transition:transform .16s,box-shadow .16s}
   },4000);
 
   document.getElementById('discoveryBtn').addEventListener('click',()=>discovery.classList.remove('show'));
-  document.getElementById('startBtn').addEventListener('click',()=>{\n    const door=document.querySelector('.door');\n    const btn=document.getElementById('startBtn');\n    btn.disabled=true; btn.textContent='문이 열리는 중…';\n    door.classList.add('door-open');\n    setTimeout(()=>{\n      start.classList.remove('show'); door.classList.remove('door-open');\n      invite('mint'); say('안녕! 반가워!', '12%', '34%');\n      btn.disabled=false; btn.textContent='문 열어주기';\n    },650);\n  });
+  document.getElementById('startBtn').addEventListener('click',()=>{
+    const door=document.querySelector('.door');
+    const btn=document.getElementById('startBtn');
+    btn.disabled=true; btn.textContent='문이 열리는 중…';
+    door.classList.add('door-open');
+    setTimeout(()=>{
+      start.classList.remove('show'); door.classList.remove('door-open');
+      invite('mint'); say('안녕! 반가워!', '12%', '34%');
+      btn.disabled=false; btn.textContent='문 열어주기';
+    },650);
+  });
   document.querySelectorAll('.action').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const action=btn.dataset.action;
