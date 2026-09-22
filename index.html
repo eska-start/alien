@@ -253,10 +253,12 @@ button{font:inherit;border:0}
     alien.addEventListener('pointermove', e=>{
       if(!dragging) return;
       moved=true;
-      const rr=room.getBoundingClientRect();
-      let x=e.clientX-rr.left-offsetX, y=e.clientY-rr.top-offsetY;
-      x=Math.max(0,Math.min(rr.width-alien.offsetWidth,x));
-      y=Math.max(75,Math.min(rr.height-alien.offsetHeight-45,y));
+      // .alien is positioned relative to .aliens, so convert pointer coordinates
+      // into the actual parent coordinate system. This prevents the drag offset.
+      const pr=alien.parentElement.getBoundingClientRect();
+      let x=e.clientX-pr.left-offsetX, y=e.clientY-pr.top-offsetY;
+      x=Math.max(0,Math.min(pr.width-alien.offsetWidth,x));
+      y=Math.max(0,Math.min(pr.height-alien.offsetHeight,y));
       alien.style.left=x+'px'; alien.style.top=y+'px'; alien.style.right='auto';
       e.preventDefault();
     });
