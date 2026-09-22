@@ -37,7 +37,7 @@
 <div class="aliens"><div class="alien a1" data-id="mint"><img src="https://opengameart.org/sites/default/files/IDLE_0.PNG"></div><div class="alien a2 hidden" data-id="violet"><img src="https://opengameart.org/sites/default/files/IDLE_0.PNG"></div><div class="alien a3 hidden" data-id="pink"><img src="https://opengameart.org/sites/default/files/IDLE_0.PNG"></div></div>
 </div>
 <div class="needs"><div>민트의 상태</div><div class="need"><span>🍓 배고픔</span><div class="bar"><i id="hunger"></i></div></div><div class="need"><span>🧸 심심함</span><div class="bar"><i id="bored"></i></div></div><div class="need"><span>😴 졸림</span><div class="bar"><i id="sleep"></i></div></div></div>
-<nav class="dock"><button data-open="care">🛁<small>돌보기</small></button><button data-open="dress">👕<small>꾸미기</small></button><button data-open="food">🍳<small>요리</small></button><button data-open="games">🎮<small>게임</small></button><button data-open="home">🪴<small>방꾸미기</small></button></nav>
+<nav class="dock"><button data-open="care" onclick="window.openBongActivity&&window.openBongActivity('care')">🛁<small>돌보기</small></button><button data-open="dress" onclick="window.openBongActivity&&window.openBongActivity('dress')">👕<small>꾸미기</small></button><button data-open="food" onclick="window.openBongActivity&&window.openBongActivity('food')">🍳<small>요리</small></button><button data-open="games" onclick="window.openBongActivity&&window.openBongActivity('games')">🎮<small>게임</small></button><button data-open="home" onclick="window.openBongActivity&&window.openBongActivity('home')">🪴<small>방꾸미기</small></button></nav>
 <div id="panel" class="panel hidden-panel"><section class="card"><div class="head"><h2 id="title"></h2><button class="close" id="close">×</button></div><div id="body"></div></section></div>
 <div id="start" class="overlay"><section class="card start"><div class="ufo">🛸</div><h1>외계인이 놀러 왔어요!</h1><p>문을 열고 새로운 친구와 방에서 놀아주세요.</p><button class="primary" id="startBtn" onclick="document.getElementById('start').style.display='none'">문 열어주기</button></section></div>
 </main></div>
@@ -77,9 +77,6 @@
     items.forEach(item=>{
       item.addEventListener("dragstart",e=>{item.classList.add("dragging");e.dataTransfer.setData("text/plain",item.textContent);});
       item.addEventListener("dragend",()=>item.classList.remove("dragging"));
-      item.addEventListener("pointerdown",()=>{
-        item.setPointerCapture?.(event?.pointerId);
-      });
     });
     ["dragover","pointerover"].forEach(ev=>drop.addEventListener(ev,e=>{if(ev==="dragover")e.preventDefault();drop.classList.add("over");}));
     ["dragleave","pointerout"].forEach(ev=>drop.addEventListener(ev,()=>drop.classList.remove("over")));
@@ -121,6 +118,8 @@
       '<button class="gamecard" data-game="m"><img src="assets/puzzle-room.svg"><div><b>🧠 기억 챌린지</b><small>카드를 뒤집어 짝을 맞춰요</small></div></button></div>');
     $("[data-game]").forEach(b=>b.addEventListener("click",()=>({p:puzzle,d:difference,b:building,c:coloring,m:memory}[b.dataset.game])()));
   }
+  window.openBongActivity=openActivity;
+
   function stage(title,sub){
     openPanel(title,'<div class="stage"><button class="back" id="back">‹ 게임</button><h2>'+title+'</h2><p>'+sub+'</p><div id="stageBody"></div></div>');
     $("#back").addEventListener("click",gameMenu);return $("#stageBody");
