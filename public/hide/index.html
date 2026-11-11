@@ -11,51 +11,73 @@
   video, canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; }
   video { object-fit: cover; }
   canvas#c { touch-action: none; }
-  #hud { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
-  .pill { background: rgba(0,0,0,.55); border-radius: 999px; padding: 8px 14px; font-weight: 800; font-size: 16px; }
-  #hint { position: fixed; bottom: max(20px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); pointer-events: auto; }
-  #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; background: rgba(17,17,17,.88); }
-  #toast { position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 52px); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); background: rgba(0,0,0,.7); color: #f7c66b; font-size: 13px; padding: 8px 14px; border-radius: 12px; pointer-events: none; }
-  #overlay.hidden, #hud.hidden, #hint.hidden, #toast.hidden { display: none; }
+  .hidden { display: none !important; }
+  #hud { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; pointer-events: none; }
+  .pill { background: rgba(0,0,0,.55); border-radius: 999px; padding: 8px 14px; font-weight: 800; font-size: 15px; white-space: nowrap; }
+  #radar { position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 48px); left: 50%; transform: translateX(-50%); pointer-events: none; transition: background .2s; }
+  #toast { position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 96px); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); background: rgba(0,0,0,.7); color: #f7c66b; font-size: 13px; padding: 8px 14px; border-radius: 12px; pointer-events: none; text-align: center; }
+  #bottom { position: fixed; bottom: max(20px, env(safe-area-inset-bottom)); left: 0; right: 0; display: flex; justify-content: center; gap: 10px; }
+  #banner { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; pointer-events: none; text-align: center; padding: 24px; background: rgba(0,0,0,.45); }
+  #banner b { font-size: 30px; letter-spacing: -1px; }
+  #banner span { font-size: 16px; color: #eee; }
+  #overlay { position: fixed; inset: 0; overflow-y: auto; background: rgba(17,17,17,.92); }
+  #overlay .in { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 32px 16px; text-align: center; }
   h1 { font-size: 30px; letter-spacing: -1px; }
-  p { font-size: 15px; line-height: 1.6; max-width: 320px; color: #ddd; }
-  #result { font-size: 20px; font-weight: 800; min-height: 26px; }
-  button { font: inherit; font-weight: 800; font-size: 17px; color: #111; background: #9be37a; border: 0; border-radius: 999px; padding: 14px 32px; cursor: pointer; }
-  button.ghost { background: rgba(255,255,255,.9); font-size: 15px; padding: 10px 20px; }
+  p { font-size: 15px; line-height: 1.65; max-width: 330px; color: #ddd; }
+  #result { font-size: 20px; font-weight: 800; }
+  #gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: min(100%, 420px); }
+  #gallery figure { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #ccc; }
+  #gallery canvas { width: 100%; aspect-ratio: 1; border-radius: 10px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  button { font: inherit; font-weight: 800; font-size: 17px; color: #111; background: #9be37a; border: 0; border-radius: 999px; padding: 14px 30px; cursor: pointer; }
+  button.ghost { background: rgba(255,255,255,.9); font-size: 15px; padding: 10px 18px; }
   button:active { transform: scale(.96); }
-  #hint:active { transform: translateX(-50%) scale(.96); }
 </style>
 </head>
 <body>
 <video id="v" playsinline muted autoplay></video>
 <canvas id="c"></canvas>
-<div id="hud" class="hidden"><span class="pill" id="count">0 / 5</span><span class="pill" id="time">0.0초</span></div>
+<div id="hud" class="hidden"><span class="pill" id="stage">1단계</span><span class="pill" id="count">0 / 3</span><span class="pill" id="time">0.0초</span></div>
+<div id="radar" class="pill hidden">🧊 차가워요</div>
 <div id="toast" class="hidden"></div>
-<button id="hint" class="ghost hidden">힌트 (+10초)</button>
-<div id="overlay">
+<div id="bottom" class="hidden"><button id="sound" class="ghost">🔊</button><button id="hint" class="ghost">힌트 (+10초)</button></div>
+<div id="banner" class="hidden"><b id="bannerTitle"></b><span id="bannerSub"></span></div>
+<div id="overlay"><div class="in">
   <h1>숨은 꼬물이 찾기</h1>
-  <div id="result"></div>
-  <p>주변에 꼬물이 5마리가 숨어 있어요.<br>꼬물이는 뒤에 있는 색으로 몸을 바꿉니다.<br>휴대폰을 돌려 둘러보고, 깜빡이는 눈을 찾아 탭하세요!</p>
-  <button id="start">카메라 켜고 시작</button>
-</div>
+  <div id="result" class="hidden"></div>
+  <div id="gallery" class="hidden"></div>
+  <p id="intro">꼬물이들이 주변에 숨었어요!<br>꼬물이는 뒤에 있는 색으로 몸을 바꿔요.<br>휴대폰을 돌려 둘러보고, <b>깜빡이는 눈</b>을 찾아 탭하세요.<br><br>🙈 겁쟁이는 오래 쳐다보면 도망가요<br>✨ 황금 꼬물이를 찾으면 −5초<br>⚡ 4초 안에 연속으로 찾으면 −2초</p>
+  <div class="row">
+    <button id="save" class="ghost hidden">📸 기념사진 저장</button>
+    <button id="start">카메라 켜고 시작</button>
+  </div>
+</div></div>
 <script>
 (() => {
-  const TOTAL = 5, FOV = 55, HINT_PENALTY = 10;
-  const REVEAL = ['#ff7aa8', '#ffd25a', '#7ad3ff', '#b48cff', '#7be08a'];
+  const FOV = 55, HINT_PENALTY = 10, GOLD_BONUS = 5, COMBO_BONUS = 2, COMBO_WINDOW = 4;
+  const STAGES = [
+    { n: 3, shy: 0, title: '1단계 · 꼬물이 3마리', sub: '깜빡이는 눈을 찾아 탭!' },
+    { n: 4, shy: 1, title: '2단계 · 겁쟁이 등장', sub: '오래 쳐다보면 도망가요. 보이면 바로 탭!' },
+    { n: 6, shy: 2, title: '3단계 · 꼬물이 대가족', sub: '6마리! 감지기를 믿어 보세요' },
+  ];
+  const REVEAL = ['#ff7aa8', '#7ad3ff', '#b48cff', '#7be08a', '#ff9f5a', '#5ae0d2'];
+  const ADJ = ['말랑한', '졸린', '배고픈', '수줍은', '용감한', '꼬질한', '통통한', '새침한', '느긋한', '장난꾸러기', '방귀쟁이', '잠꾸러기'];
   const video = document.getElementById('v');
   const cv = document.getElementById('c'), ctx = cv.getContext('2d');
   const sample = document.createElement('canvas'), sctx = sample.getContext('2d', { willReadFrequently: true });
   const $ = id => document.getElementById(id);
-  const overlay = $('overlay'), hud = $('hud'), hintBtn = $('hint');
 
-  let W = 0, H = 0, ppd = 1, K = 8;
-  let source = null, srcW = 0, srcH = 0;         // 카메라 또는 대체 배경
-  let yaw = 0, pitch = 0, gyro = false;          // 바라보는 방향(도)
-  let chars = [], found = 0, t0 = 0, penalty = 0, running = false, hintUntil = 0, endAt = 0;
-  let pixels = null, ripples = [], lastT = 0;
+  let W = 0, H = 0, ppd = 1; const K = 8;
+  let source = null;
+  let yaw = 0, pitch = 0;
+  let mode = 'menu';          // menu | play | between
+  let stage = 0, chars = [], found = 0, needed = 0;
+  let active = 0, penalty = 0, bonus = 0, hintUntil = 0, lastFind = -99, radarT = 0;
+  let pixels = null, fx = [], photos = [], lastT = 0;
   let best = 0;
-  try { best = +localStorage.getItem('hide-best') || 0; } catch (e) {}
+  try { best = +localStorage.getItem('hide-best3') || 0; } catch (e) {}
 
+  /* ---------- 화면 ---------- */
   function resize() {
     const d = Math.min(devicePixelRatio || 1, 2);
     W = innerWidth; H = innerHeight;
@@ -65,7 +87,38 @@
   }
   addEventListener('resize', resize);
 
-  // 카메라가 없을 때 쓸 얼룩무늬 배경 (둘러보면 함께 움직임)
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const wrap = a => ((a % 360) + 540) % 360 - 180;
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  /* ---------- 소리 ---------- */
+  let ac = null, soundOn = true;
+  try { soundOn = localStorage.getItem('hide-sound') !== 'off'; } catch (e) {}
+  function tone(freq, dur = .08, type = 'sine', vol = .15, slide = 0, delay = 0) {
+    if (!ac || !soundOn) return;
+    const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  const sfx = {
+    found: () => { tone(660, .1, 'triangle'); tone(880, .1, 'triangle', .15, 0, .08); tone(1320, .18, 'triangle', .12, 0, .16); },
+    gold: () => [784, 988, 1175, 1568, 1976].forEach((f, i) => tone(f, .14, 'triangle', .12, 0, i * .06)),
+    miss: () => tone(180, .12, 'square', .05),
+    escape: () => tone(1000, .25, 'triangle', .1, .3),
+    stage: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .16, 'square', .06, 0, i * .1)),
+    win: () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, .2, 'triangle', .12, 0, i * .12)),
+    tick: () => tone(1400, .03, 'sine', .04),
+  };
+  function updateSoundBtn() { $('sound').textContent = soundOn ? '🔊' : '🔇'; }
+  $('sound').addEventListener('click', () => {
+    soundOn = !soundOn; updateSoundBtn();
+    try { localStorage.setItem('hide-sound', soundOn ? 'on' : 'off'); } catch (e) {}
+  });
+  updateSoundBtn();
+
+  /* ---------- 카메라 / 대체 배경 ---------- */
   function makeFallback() {
     const c = document.createElement('canvas'); c.width = 1600; c.height = 900;
     const g = c.getContext('2d');
@@ -73,7 +126,7 @@
     const cols = ['#4f7a43', '#8fb36b', '#a58c5a', '#3e5e36', '#c7b37a', '#7aa0b8'];
     for (let i = 0; i < 260; i++) {
       g.fillStyle = cols[i % cols.length]; g.globalAlpha = .55;
-      g.beginPath(); g.ellipse(Math.random() * c.width, Math.random() * c.height, 20 + Math.random() * 90, 20 + Math.random() * 70, Math.random() * 3, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(Math.random() * c.width, Math.random() * c.height, rand(20, 110), rand(20, 90), Math.random() * 3, 0, 7); g.fill();
     }
     return c;
   }
@@ -85,35 +138,49 @@
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
       video.srcObject = stream; await video.play();
       source = video; return true;
-    } catch (e) {
-      source = fallback; return false;
-    }
+    } catch (e) { source = fallback; return false; }
   }
 
+  // object-fit: cover 와 같은 방식으로 소스를 (w × h) 영역에 그림
+  function drawCover(g, w, h) {
+    if (source === video) {
+      const vw = video.videoWidth, vh = video.videoHeight; if (!vw) return false;
+      const s = Math.max(w / vw, h / vh);
+      g.drawImage(video, (w - vw * s) / 2, (h - vh * s) / 2, vw * s, vh * s);
+    } else if (source) {
+      const f = w / W, tw = 360 * ppd * f, th = tw * fallback.height / fallback.width;
+      let ox = (w / 2 - (yaw + 180) * ppd * f) % tw; if (ox > 0) ox -= tw;
+      const oy = (h - th) / 2 + pitch * ppd * f;
+      for (let x = ox; x < w; x += tw) g.drawImage(fallback, x, oy, tw, th);
+    } else return false;
+    return true;
+  }
+
+  /* ---------- 방향 센서 ---------- */
+  let motionOn = false, lastMotion = 0;
   async function startMotion() {
+    if (motionOn) return;
     try {
       if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         if (await DeviceMotionEvent.requestPermission() !== 'granted') return;
       }
     } catch (e) { return; }
-    addEventListener('devicemotion', onMotion);
-  }
-  let lastMotion = 0;
-  function onMotion(e) {
-    const r = e.rotationRate; if (!r || r.beta == null) return;
-    const now = performance.now(), dt = lastMotion ? Math.min((now - lastMotion) / 1000, .1) : 0; lastMotion = now;
-    if (!dt) return;
-    gyro = true;
-    // 세로로 든 휴대폰 기준: y축 회전 = 좌우, x축 회전 = 위아래
-    yaw -= (r.gamma || 0) * dt;
-    pitch = clamp(pitch + (r.beta || 0) * dt, -60, 60);
+    motionOn = true;
+    addEventListener('devicemotion', e => {
+      const r = e.rotationRate; if (!r || r.beta == null) return;
+      const now = performance.now(), dt = lastMotion ? Math.min((now - lastMotion) / 1000, .1) : 0; lastMotion = now;
+      if (!dt) return;
+      // 세로로 든 휴대폰: y축 회전 = 좌우, x축 회전 = 위아래
+      yaw -= (r.gamma || 0) * dt;
+      pitch = clamp(pitch + (r.beta || 0) * dt, -60, 60);
+    });
   }
 
-  // 손가락/마우스로 둘러보기 (센서가 없거나 보조용)
+  /* ---------- 입력 ---------- */
   let drag = null;
   cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY }; });
   cv.addEventListener('pointermove', e => {
-    if (!drag || !running) return;
+    if (!drag || mode === 'menu') return;
     yaw -= (e.clientX - drag.x) / ppd; pitch = clamp(pitch + (e.clientY - drag.y) / ppd, -60, 60);
     drag.x = e.clientX; drag.y = e.clientY;
   });
@@ -121,45 +188,199 @@
     if (drag && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 10) tap(e.clientX, e.clientY);
     drag = null;
   });
+  $('hint').addEventListener('click', () => {
+    if (mode !== 'play') return;
+    penalty += HINT_PENALTY; hintUntil = performance.now() + 2500;
+    floatText(W / 2, H / 2 + 90, '+' + HINT_PENALTY + '초', '#ff8a8a');
+  });
 
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const wrap = a => ((a + 540) % 360) - 180;
-
-  function placeChars() {
-    chars = [];
-    while (chars.length < TOTAL) {
-      const c = { yaw: yaw + (Math.random() * 240 - 120), pitch: pitch + (Math.random() * 50 - 25) };
-      if (chars.some(o => Math.hypot(wrap(o.yaw - c.yaw), o.pitch - c.pitch) < 28)) continue;
-      if (Math.abs(wrap(c.yaw - yaw)) < 18) continue; // 시작하자마자 정면에 있지 않게
-      Object.assign(c, {
-        r: 18 + Math.random() * 10, rot: (Math.random() - .5) * 1.2, flip: Math.random() < .5,
-        blink: 1.5 + Math.random() * 3, open: 0, found: 0, color: REVEAL[chars.length],
-        tone: [128, 128, 128], shade: (Math.random() - .5) * 20
+  /* ---------- 꼬물이 배치 ---------- */
+  function newChar(kind, i) {
+    const others = chars.filter(c => !c.found);
+    for (let tries = 0; tries < 200; tries++) {
+      const c = { yaw: yaw + rand(-130, 130), pitch: clamp(pitch + rand(-28, 28), -50, 50) };
+      if (others.some(o => Math.hypot(wrap(o.yaw - c.yaw), o.pitch - c.pitch) < 26)) continue;
+      if (Math.abs(wrap(c.yaw - yaw)) < 20) continue;  // 시작하자마자 눈앞에 있지 않게
+      return Object.assign(c, {
+        kind, r: kind === 'gold' ? rand(14, 18) : rand(17, 27), rot: rand(-.6, .6), flip: Math.random() < .5,
+        blink: rand(1, 3), open: 0, found: 0, watch: 0, escapes: kind === 'shy' ? 2 : 0,
+        color: kind === 'gold' ? '#ffd23f' : REVEAL[i % REVEAL.length],
+        tone: null, shade: rand(-10, 10),
+        name: kind === 'gold' ? '황금 꼬물이' : kind === 'shy' ? '겁쟁이 꼬물이' : ADJ[Math.random() * ADJ.length | 0] + ' 꼬물이',
       });
-      chars.push(c);
+    }
+    return null;
+  }
+
+  function startStage(i) {
+    stage = i; const S = STAGES[i];
+    chars = []; found = 0; needed = S.n; hintUntil = 0;
+    for (let k = 0; k < S.n; k++) { const c = newChar(k < S.shy ? 'shy' : 'normal', k); if (c) chars.push(c); }
+    needed = chars.length;
+    const gold = Math.random() < .6;
+    if (gold) { const g = newChar('gold', 0); if (g) chars.push(g); }
+    $('stage').textContent = (i + 1) + '단계';
+    updateCount();
+    mode = 'between';
+    $('bannerTitle').textContent = S.title; $('bannerSub').textContent = S.sub;
+    $('banner').classList.remove('hidden');
+    sfx.stage();
+    setTimeout(() => {
+      $('banner').classList.add('hidden'); mode = 'play';
+      if (gold) toast('✨ 황금 꼬물이가 어딘가에… (찾으면 −' + GOLD_BONUS + '초)');
+    }, 2200);
+  }
+
+  function updateCount() { $('count').textContent = found + ' / ' + needed; }
+
+  function toast(msg, ms = 3200) {
+    const t = $('toast'); t.textContent = msg; t.classList.remove('hidden');
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.add('hidden'), ms);
+  }
+
+  function screenPos(c) { return { x: W / 2 + wrap(c.yaw - yaw) * ppd, y: H / 2 - (c.pitch - pitch) * ppd }; }
+
+  /* ---------- 탭 ---------- */
+  function tap(x, y) {
+    if (mode !== 'play') return;
+    let hit = null, hd = 1e9;
+    for (const c of chars) {
+      if (c.found) continue;
+      const p = screenPos(c), d = Math.hypot(p.x - x, p.y - y);
+      if (d < c.r * 1.6 + 14 && d < hd) { hit = c; hd = d; }
+    }
+    if (!hit) { fx.push({ type: 'ring', x, y, t: 0 }); sfx.miss(); return; }
+    catchChar(hit);
+  }
+
+  function catchChar(c) {
+    c.found = .001;
+    const p = screenPos(c);
+    photos.push(snapshot(c, p));
+    confetti(p.x, p.y, c.color);
+    if (navigator.vibrate) navigator.vibrate(c.kind === 'gold' ? [40, 40, 40] : 40);
+    floatText(p.x, p.y - c.r - 18, c.name, '#fff');
+    if (c.kind === 'gold') {
+      bonus += GOLD_BONUS; sfx.gold();
+      floatText(p.x, p.y - c.r - 42, '−' + GOLD_BONUS + '초 ✨', '#ffd23f');
+      return;
+    }
+    sfx.found();
+    const now = active;
+    if (now - lastFind < COMBO_WINDOW) {
+      bonus += COMBO_BONUS;
+      floatText(p.x, p.y - c.r - 42, '콤보! −' + COMBO_BONUS + '초', '#9be37a');
+    }
+    lastFind = now;
+    found++; updateCount();
+    if (found >= needed) {
+      for (const g of chars) if (!g.found && g.kind === 'gold') g.gone = true;
+      mode = 'between';
+      setTimeout(() => stage + 1 < STAGES.length ? startStage(stage + 1) : finish(), 1200);
     }
   }
 
-  function screenPos(c) {
-    return { x: W / 2 + wrap(c.yaw - yaw) * ppd, y: H / 2 - (c.pitch - pitch) * ppd };
+  function escape(c, p) {
+    c.escapes--; c.watch = 0;
+    for (let i = 0; i < 14; i++) fx.push({ type: 'dust', x: p.x, y: p.y, vx: rand(-120, 120), vy: rand(-120, 60), t: 0, life: rand(.4, .7) });
+    floatText(p.x, p.y - c.r - 10, '앗!', '#fff');
+    sfx.escape();
+    if (navigator.vibrate) navigator.vibrate(15);
+    const n = newChar('shy', 0);
+    c.yaw = n ? yaw + Math.sign(wrap(n.yaw - yaw) || 1) * rand(40, 100) : yaw + 90;
+    c.pitch = n ? n.pitch : c.pitch; c.tone = null;
   }
 
-  // 소스 화면을 object-fit: cover 와 같은 방식으로 그림
-  function drawCover(g, w, h) {
-    if (source === video) {
-      srcW = video.videoWidth; srcH = video.videoHeight; if (!srcW) return false;
-      const s = Math.max(w / srcW, h / srcH);
-      g.drawImage(video, (w - srcW * s) / 2, (h - srcH * s) / 2, srcW * s, srcH * s);
-    } else {
-      // 대체 배경은 360°를 한 바퀴로 감싸고, 바라보는 방향에 맞춰 스크롤
-      const f = w / W, tw = 360 * ppd * f, th = tw * fallback.height / fallback.width;
-      let ox = (w / 2 - (yaw + 180) * ppd * f) % tw; if (ox > 0) ox -= tw;
-      const oy = (h - th) / 2 + pitch * ppd * f;
-      for (let x = ox; x < w; x += tw) g.drawImage(fallback, x, oy, tw, th);
+  /* ---------- 효과 ---------- */
+  function confetti(x, y, color) {
+    const cols = [color, '#fff', '#ffd23f', '#ff7aa8', '#7ad3ff'];
+    for (let i = 0; i < 26; i++) {
+      const a = rand(0, Math.PI * 2), s = rand(80, 320);
+      fx.push({ type: 'bit', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 120, t: 0, life: rand(.6, 1.1), color: cols[i % cols.length], rot: rand(0, 6) });
     }
-    return true;
+  }
+  function floatText(x, y, text, color) { fx.push({ type: 'text', x, y, text, color, t: 0, life: 1.3 }); }
+
+  /* ---------- 기념사진 ---------- */
+  function snapshot(c, p) {
+    const S = 240, z = 2.2, cnv = document.createElement('canvas'); cnv.width = cnv.height = S;
+    const g = cnv.getContext('2d');
+    g.fillStyle = '#222'; g.fillRect(0, 0, S, S);
+    g.save(); g.translate(S / 2 - p.x * z, S / 2 - p.y * z); g.scale(z, z); drawCover(g, W, H); g.restore();
+    g.save(); g.translate(S / 2, S / 2); g.scale(z, z);
+    drawChar(g, c, 0, 0, c.color, 1, 1, 10, true);
+    g.restore();
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, S - 30, S, 30);
+    g.fillStyle = '#fff'; g.font = 'bold 15px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(c.name, S / 2, S - 15);
+    cnv.dataset.name = c.name;
+    return cnv;
   }
 
+  function showGallery() {
+    const gal = $('gallery'); gal.innerHTML = '';
+    for (const ph of photos) {
+      const f = document.createElement('figure'); f.appendChild(ph);
+      gal.appendChild(f);
+    }
+    gal.classList.toggle('hidden', !photos.length);
+    $('save').classList.toggle('hidden', !photos.length);
+  }
+
+  let lastResult = '';
+  $('save').addEventListener('click', async () => {
+    const cols = 4, S = 240, gap = 10, rows = Math.ceil(photos.length / cols);
+    const out = document.createElement('canvas');
+    out.width = cols * S + (cols + 1) * gap; out.height = rows * S + (rows + 1) * gap + 70;
+    const g = out.getContext('2d');
+    g.fillStyle = '#1b1b1b'; g.fillRect(0, 0, out.width, out.height);
+    g.fillStyle = '#fff'; g.font = 'bold 30px system-ui, sans-serif'; g.textAlign = 'center';
+    g.fillText('숨은 꼬물이 찾기 · ' + lastResult, out.width / 2, 46);
+    photos.forEach((ph, i) => g.drawImage(ph, gap + (i % cols) * (S + gap), 70 + gap + (i / cols | 0) * (S + gap)));
+    const blob = await new Promise(r => out.toBlob(r, 'image/png'));
+    const file = new File([blob], 'kkomul.png', { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: '숨은 꼬물이 찾기' }); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'kkomul.png';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+
+  /* ---------- 시작 / 끝 ---------- */
+  // 보너스로 줄일 수 있는 건 실제 걸린 시간의 70%까지
+  function total() { return Math.max(active * .3, active + penalty - bonus); }
+
+  $('start').addEventListener('click', async () => {
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch (e) {}
+    $('start').disabled = true;
+    const [camOk] = await Promise.all([startCamera(), startMotion()]);
+    $('start').disabled = false;
+    yaw = 0; pitch = 0; active = 0; penalty = 0; bonus = 0; lastFind = -99; photos = []; fx = [];
+    ['overlay'].forEach(id => $(id).classList.add('hidden'));
+    ['hud', 'radar', 'bottom'].forEach(id => $(id).classList.remove('hidden'));
+    startStage(0);
+    setTimeout(() => toast(camOk ? '휴대폰을 천천히 돌려 둘러보세요. 드래그해도 돼요.' : '카메라를 쓸 수 없어 연습용 배경으로 진행해요. 드래그해서 둘러보세요.', 3500), 2300);
+  });
+
+  function finish() {
+    mode = 'menu'; sfx.win();
+    const t = total();
+    lastResult = t.toFixed(1) + '초';
+    let msg = '🎉 ' + t.toFixed(1) + '초 만에 모두 찾았어요!';
+    if (!best || t < best) { best = t; try { localStorage.setItem('hide-best3', t.toFixed(1)); } catch (e) {} msg += '\n🏆 신기록!'; }
+    else msg += '\n최고 기록 ' + (+best).toFixed(1) + '초';
+    const golds = photos.filter(p => p.dataset.name === '황금 꼬물이').length;
+    if (golds) msg += ' · 황금 ' + golds + '마리';
+    setTimeout(() => {
+      $('result').textContent = msg; $('result').style.whiteSpace = 'pre-line'; $('result').classList.remove('hidden');
+      $('intro').classList.add('hidden'); showGallery();
+      $('start').textContent = '다시 하기';
+      ['hud', 'radar', 'bottom', 'toast'].forEach(id => $(id).classList.add('hidden'));
+      $('overlay').classList.remove('hidden'); $('overlay').scrollTop = 0;
+    }, 1500);
+  }
+
+  /* ---------- 그리기 ---------- */
   function colorAt(x, y) {
     if (!pixels) return [128, 128, 128];
     const sx = clamp(Math.round(x / K), 0, sample.width - 1), sy = clamp(Math.round(y / K), 0, sample.height - 1);
@@ -171,82 +392,64 @@
     return [r / n, g / n, b / n];
   }
 
-  function tap(x, y) {
-    if (!running) return;
-    for (const c of chars) {
-      if (c.found) continue;
-      const p = screenPos(c);
-      if (Math.hypot(p.x - x, p.y - y) < c.r * 1.6 + 14) {
-        c.found = 0.001; found++; updateHud();
-        if (navigator.vibrate) navigator.vibrate(40);
-        if (found >= TOTAL) finish();
-        return;
-      }
-    }
-    ripples.push({ x, y, t: 0 });
-  }
-
-  function elapsed() { return (performance.now() - t0) / 1000 + penalty; }
-  function updateHud() { $('count').textContent = found + ' / ' + TOTAL; }
-
-  function finish() {
-    running = false; endAt = performance.now();
-    const t = elapsed();
-    let msg = t.toFixed(1) + '초 만에 다 찾았어요!';
-    if (!best || t < best) { best = t; try { localStorage.setItem('hide-best', best.toFixed(1)); } catch (e) {} msg += ' 🏆 신기록'; }
-    else msg += ' (최고 ' + (+best).toFixed(1) + '초)';
-    setTimeout(() => {
-      $('result').textContent = msg; $('start').textContent = '다시 하기';
-      hud.classList.add('hidden'); hintBtn.classList.add('hidden'); overlay.classList.remove('hidden');
-    }, 1400);
-  }
-
-  hintBtn.addEventListener('click', () => { if (running) { penalty += HINT_PENALTY; hintUntil = performance.now() + 2500; } });
-
-  $('start').addEventListener('click', async () => {
-    $('start').disabled = true;
-    const [camOk] = await Promise.all([startCamera(), startMotion()]);
-    $('start').disabled = false;
-    const toast = $('toast');
-    toast.textContent = !camOk ? '카메라를 쓸 수 없어 연습용 배경으로 진행해요. 드래그해서 둘러보세요.' : '휴대폰을 천천히 돌려 둘러보세요. 드래그해도 돼요.';
-    toast.classList.remove('hidden'); clearTimeout(toast._t); toast._t = setTimeout(() => toast.classList.add('hidden'), 4000);
-    yaw = 0; pitch = 0; placeChars(); found = 0; penalty = 0; hintUntil = 0; ripples = [];
-    updateHud(); t0 = performance.now(); running = true;
-    overlay.classList.add('hidden'); hud.classList.remove('hidden'); hintBtn.classList.remove('hidden');
-  });
-
   // 꼬물이: 동그란 몸, 말린 꼬리, 툭 튀어나온 눈
-  function drawChar(c, x, y, fill, alpha, eyesOpen, glow) {
+  function drawChar(g, c, x, y, fill, alpha, eyesOpen, glow, happy) {
     const r = c.r;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(c.rot); if (c.flip) ctx.scale(-1, 1);
-    ctx.globalAlpha = alpha;
-    if (glow) { ctx.shadowColor = '#fff'; ctx.shadowBlur = glow; }
-    ctx.fillStyle = fill; ctx.strokeStyle = fill; ctx.lineCap = 'round';
-    // 꼬리
-    ctx.lineWidth = r * .32;
-    ctx.beginPath(); ctx.moveTo(-r * .8, r * .2);
-    ctx.quadraticCurveTo(-r * 1.6, r * .3, -r * 1.5, -r * .2);
-    ctx.arc(-r * 1.2, -r * .2, r * .3, Math.PI, Math.PI * 2.6); ctx.stroke();
-    // 다리
-    ctx.lineWidth = r * .22;
-    for (const lx of [-.45, .45]) { ctx.beginPath(); ctx.moveTo(r * lx, r * .6); ctx.lineTo(r * lx * 1.2, r * 1.05); ctx.stroke(); }
-    // 몸통
-    ctx.beginPath(); ctx.ellipse(0, 0, r, r * .78, 0, 0, Math.PI * 2); ctx.fill();
-    // 눈 언덕
-    ctx.beginPath(); ctx.arc(r * .45, -r * .55, r * .42, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-    // 눈
-    if (eyesOpen > 0) {
-      ctx.globalAlpha = alpha * eyesOpen;
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.ellipse(r * .5, -r * .58, r * .25, r * .25 * eyesOpen, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#111';
-      ctx.beginPath(); ctx.arc(r * .58, -r * .58, r * .11, 0, Math.PI * 2); ctx.fill();
-    } else {
-      ctx.globalAlpha = alpha * .35; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.moveTo(r * .3, -r * .58); ctx.lineTo(r * .7, -r * .58); ctx.stroke();
+    g.save(); g.translate(x, y); g.rotate(c.rot); if (c.flip) g.scale(-1, 1);
+    g.globalAlpha = alpha;
+    if (glow) { g.shadowColor = c.kind === 'gold' && happy ? '#ffd23f' : '#fff'; g.shadowBlur = glow; }
+    g.fillStyle = fill; g.strokeStyle = fill; g.lineCap = 'round';
+    g.lineWidth = r * .32;
+    g.beginPath(); g.moveTo(-r * .8, r * .2);
+    g.quadraticCurveTo(-r * 1.6, r * .3, -r * 1.5, -r * .2);
+    g.arc(-r * 1.2, -r * .2, r * .3, Math.PI, Math.PI * 2.6); g.stroke();
+    g.lineWidth = r * .22;
+    for (const lx of [-.45, .45]) { g.beginPath(); g.moveTo(r * lx, r * .6); g.lineTo(r * lx * 1.2, r * 1.05); g.stroke(); }
+    g.beginPath(); g.ellipse(0, 0, r, r * .78, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(r * .45, -r * .55, r * .42, 0, Math.PI * 2); g.fill();
+    g.shadowBlur = 0;
+    if (happy) {
+      // 볼터치 + 웃는 입
+      g.fillStyle = 'rgba(255,255,255,.35)';
+      g.beginPath(); g.ellipse(r * .55, r * .05, r * .18, r * .12, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = Math.max(1.2, r * .08);
+      g.beginPath(); g.arc(r * .72, r * .02, r * .16, .25, Math.PI - .25); g.stroke();
     }
-    ctx.restore();
+    if (eyesOpen > 0) {
+      g.globalAlpha = alpha * Math.min(1, eyesOpen);
+      g.fillStyle = c.kind === 'gold' && !happy ? '#fff6c2' : '#fff';
+      g.beginPath(); g.ellipse(r * .5, -r * .58, r * .25, r * .25 * eyesOpen, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#111';
+      g.beginPath(); g.arc(r * .58, -r * .58, r * .11, 0, Math.PI * 2); g.fill();
+    } else {
+      g.globalAlpha = alpha * .35; g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(r * .3, -r * .58); g.lineTo(r * .7, -r * .58); g.stroke();
+    }
+    g.restore();
+  }
+
+  function nearest() {
+    let b = null, bd = 1e9;
+    for (const c of chars) {
+      if (c.found || c.gone) continue;
+      const d = Math.hypot(wrap(c.yaw - yaw), c.pitch - pitch);
+      if (d < bd) { bd = d; b = c; }
+    }
+    return b ? { c: b, d: bd } : null;
+  }
+
+  function updateRadar(dt) {
+    const n = nearest(), el = $('radar');
+    if (!n) return;
+    let label, bg, every;
+    if (n.d < 9) { label = '🔥 바로 여기!'; bg = 'rgba(220,40,40,.8)'; every = .22; }
+    else if (n.d < 22) { label = '♨️ 뜨거워요'; bg = 'rgba(230,110,30,.75)'; every = .45; }
+    else if (n.d < 50) { label = '🙂 따뜻해요'; bg = 'rgba(200,160,30,.65)'; every = .9; }
+    else { label = '🧊 차가워요'; bg = 'rgba(30,90,180,.6)'; every = 0; }
+    if (el.textContent !== label) el.textContent = label;
+    el.style.background = bg;
+    radarT -= dt;
+    if (every && radarT <= 0) { sfx.tick(); radarT = every; }
   }
 
   function frame(now) {
@@ -254,72 +457,101 @@
     const dt = lastT ? Math.min((now - lastT) / 1000, .05) : 0; lastT = now;
     ctx.clearRect(0, 0, W, H);
     if (!source) return;
+    if (mode === 'play') active += dt;
 
-    // 대체 배경은 화면에도 그림 (카메라일 땐 video 요소가 보임)
     if (source !== video) drawCover(ctx, W, H);
     sctx.setTransform(1, 0, 0, 1, 0, 0);
     if (drawCover(sctx, sample.width, sample.height)) pixels = sctx.getImageData(0, 0, sample.width, sample.height).data;
 
+    const near = nearest();
     for (const c of chars) {
       const p = screenPos(c);
-      if (p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60) continue;
+      const onScreen = p.x > -60 && p.x < W + 60 && p.y > -60 && p.y < H + 60;
       if (c.found) {
         c.found = Math.min(c.found + dt * 2.5, 1);
-        const s = 1 + Math.sin(c.found * Math.PI) * .5;
-        ctx.save(); ctx.translate(p.x, p.y); ctx.scale(s, s); ctx.translate(-p.x, -p.y);
-        drawChar(c, p.x, p.y, c.color, 1, 1, 14);
+        if (!onScreen) continue;
+        const s = 1 + Math.sin(c.found * Math.PI) * .5, bob = Math.sin(now / 250 + c.r) * 2;
+        ctx.save(); ctx.translate(p.x, p.y + bob); ctx.scale(s, s);
+        drawChar(ctx, c, 0, 0, c.color, 1, 1, 14, true);
         ctx.restore();
         continue;
       }
-      // 등 뒤 색을 따라 천천히 변색
-      const bg = colorAt(p.x, p.y);
-      for (let i = 0; i < 3; i++) c.tone[i] += (bg[i] + c.shade - c.tone[i]) * Math.min(1, dt * 6);
-      // 깜빡임: 가끔 눈을 뜸
-      c.blink -= dt;
-      if (c.blink <= 0) { c.open = 0.9; c.blink = 2 + Math.random() * 3.5; }
-      c.open = Math.max(0, c.open - dt);
-      const eyes = c.open > 0 ? Math.min(1, c.open * 4, (0.9 - c.open) * 6 + .2) : 0;
-      const wob = Math.sin(now / 400 + c.r) * 1.2;
-      const fill = `rgb(${c.tone.map(v => clamp(v | 0, 0, 255)).join(',')})`;
-      const glow = now < hintUntil && c === nearest() ? 18 + Math.sin(now / 80) * 8 : 0;
-      drawChar(c, p.x, p.y + wob, fill, .93, eyes, glow);
-    }
+      if (c.gone) { c.goneT = (c.goneT || 0) + dt; if (c.goneT > 1 || !onScreen) continue; }
 
-    // 힌트 화살표
-    if (running && now < hintUntil) {
-      const c = nearest();
-      if (c) {
-        const a = Math.atan2(-(c.pitch - pitch), wrap(c.yaw - yaw));
-        ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(a);
-        ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(70, 0); ctx.lineTo(40, -16); ctx.lineTo(40, 16); ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.restore();
+      // 겁쟁이: 화면 가운데서 오래 쳐다보면 도망
+      const centered = Math.abs(p.x - W / 2) < W * .32 && Math.abs(p.y - H / 2) < H * .3;
+      if (c.kind === 'shy' && mode === 'play' && c.escapes > 0) {
+        c.watch = centered ? c.watch + dt : Math.max(0, c.watch - dt);
+        if (c.watch > 1.5) { escape(c, p); continue; }
+      }
+      if (!onScreen) continue;
+
+      const bg = colorAt(p.x, p.y);
+      if (!c.tone) c.tone = bg.slice();
+      for (let i = 0; i < 3; i++) c.tone[i] += (bg[i] + c.shade - c.tone[i]) * Math.min(1, dt * 6);
+
+      c.blink -= dt;
+      if (c.blink <= 0) { c.open = .9; c.blink = c.kind === 'gold' ? rand(1, 2) : rand(2, 4.5); }
+      c.open = Math.max(0, c.open - dt);
+      let eyes = c.open > 0 ? Math.min(1, c.open * 4, (.9 - c.open) * 6 + .2) : 0;
+      let shake = 0;
+      if (c.kind === 'shy' && c.watch > .8) { eyes = 1.15; shake = Math.sin(now / 25) * 2; }   // 들킬까 봐 덜덜
+      const wob = Math.sin(now / 400 + c.r) * 1.2;
+      let fill = `rgb(${c.tone.map(v => clamp(v | 0, 0, 255)).join(',')})`;
+      const glow = now < hintUntil && near && c === near.c ? 18 + Math.sin(now / 80) * 8 : 0;
+      const alpha = c.gone ? .93 * (1 - c.goneT) : .93;
+      drawChar(ctx, c, p.x + shake, p.y + wob, fill, alpha, eyes, glow, false);
+      if (c.kind === 'gold' && Math.random() < dt * 1.5) {
+        fx.push({ type: 'spark', x: p.x + rand(-c.r, c.r), y: p.y + rand(-c.r, c.r), t: 0, life: .5 });
       }
     }
 
-    // 빗나간 탭 표시
-    ripples = ripples.filter(r => (r.t += dt) < .4);
-    for (const r of ripples) {
-      ctx.strokeStyle = `rgba(255,255,255,${.8 - r.t * 2})`; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(r.x, r.y, 10 + r.t * 60, 0, Math.PI * 2); ctx.stroke();
+    // 힌트 화살표
+    if (mode === 'play' && now < hintUntil && near) {
+      const a = Math.atan2(-(near.c.pitch - pitch), wrap(near.c.yaw - yaw));
+      ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(a);
+      ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(74, 0); ctx.lineTo(42, -17); ctx.lineTo(42, 17); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
     }
 
-    if (running) $('time').textContent = elapsed().toFixed(1) + '초';
-  }
-
-  function nearest() {
-    let bestC = null, bd = 1e9;
-    for (const c of chars) {
-      if (c.found) continue;
-      const d = Math.hypot(wrap(c.yaw - yaw), c.pitch - pitch);
-      if (d < bd) { bd = d; bestC = c; }
+    // 효과
+    fx = fx.filter(f => (f.t += dt) < (f.life || .4));
+    for (const f of fx) {
+      const k = f.t / (f.life || .4);
+      if (f.type === 'ring') {
+        ctx.strokeStyle = `rgba(255,255,255,${.8 - k * .8})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(f.x, f.y, 10 + k * 25, 0, Math.PI * 2); ctx.stroke();
+      } else if (f.type === 'bit') {
+        f.vy += 500 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += dt * 8;
+        ctx.save(); ctx.globalAlpha = 1 - k; ctx.translate(f.x, f.y); ctx.rotate(f.rot);
+        ctx.fillStyle = f.color; ctx.fillRect(-4, -2.5, 8, 5); ctx.restore();
+      } else if (f.type === 'dust') {
+        f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= .92; f.vy *= .92;
+        ctx.fillStyle = `rgba(230,230,230,${.7 * (1 - k)})`;
+        ctx.beginPath(); ctx.arc(f.x, f.y, 6 + k * 12, 0, Math.PI * 2); ctx.fill();
+      } else if (f.type === 'spark') {
+        ctx.fillStyle = `rgba(255,230,120,${1 - k})`; const s = 3 * (1 - k) + 1;
+        ctx.beginPath(); ctx.moveTo(f.x, f.y - s * 2); ctx.lineTo(f.x + s * .6, f.y); ctx.lineTo(f.x, f.y + s * 2); ctx.lineTo(f.x - s * .6, f.y); ctx.fill();
+      } else if (f.type === 'text') {
+        ctx.save(); ctx.globalAlpha = Math.min(1, (1 - k) * 2);
+        ctx.font = 'bold 17px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.fillStyle = f.color;
+        const yy = f.y - k * 30; ctx.strokeText(f.text, f.x, yy); ctx.fillText(f.text, f.x, yy); ctx.restore();
+      }
     }
-    return bestC;
+
+    if (mode === 'play') updateRadar(dt);
+    if (mode !== 'menu') $('time').textContent = total().toFixed(1) + '초';
   }
 
   resize();
   requestAnimationFrame(frame);
-  window.__hide = { get chars() { return chars; }, screenPos, get yaw() { return yaw; }, set yaw(v) { yaw = v; }, get pitch() { return pitch; }, set pitch(v) { pitch = v; } };
+  // 테스트용 접근점
+  window.__hide = {
+    get chars() { return chars; }, get mode() { return mode; }, get stage() { return stage; }, screenPos,
+    get yaw() { return yaw; }, set yaw(v) { yaw = v; }, get pitch() { return pitch; }, set pitch(v) { pitch = v; },
+  };
 })();
 </script>
 </body>
