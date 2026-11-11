@@ -5,3 +5,6 @@
 ## 웹 플레이
 GitHub Pages 배포 후 아래 링크에서 바로 플레이하실 수 있습니다:
 - https://eska-start.github.io/alien/
+
+## 빼빼로 받기 (11월 11일 미니게임)
+- https://eska-start.github.io/alien/pepero/

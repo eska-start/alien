@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#ffe3ec" />
+<title>빼빼로 받기 | 11월 11일</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: #ffe3ec; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: #5a2d1a; }
+  #wrap { position: fixed; inset: 0; display: flex; justify-content: center; }
+  canvas { height: 100%; width: 100%; max-width: 520px; background: linear-gradient(#fff4f7, #ffd0de); touch-action: none; display: block; }
+  #hud { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(100%, 520px); padding: 0 16px; display: flex; justify-content: space-between; font-weight: 800; font-size: 18px; pointer-events: none; }
+  #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; background: rgba(255, 227, 236, .9); }
+  #overlay.hidden { display: none; }
+  h1 { font-size: 34px; letter-spacing: -1px; }
+  p { font-size: 15px; line-height: 1.6; max-width: 300px; }
+  #result { font-size: 20px; font-weight: 800; min-height: 26px; }
+  button { font: inherit; font-weight: 800; font-size: 18px; color: #fff; background: #6b3a22; border: 0; border-radius: 999px; padding: 14px 36px; cursor: pointer; }
+  button:active { transform: scale(.96); }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div id="hud"><span id="score">점수 0</span><span id="lives">♥♥♥</span></div>
+<div id="overlay">
+  <h1>빼빼로 받기</h1>
+  <div id="result"></div>
+  <p>떨어지는 막대과자를 바구니로 받으세요.<br>3개를 놓치면 끝! 하트는 목숨을 채워 줍니다.<br>드래그 또는 ← → 키로 이동</p>
+  <button id="start">시작</button>
+</div>
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const elScore = document.getElementById('score'), elLives = document.getElementById('lives');
+  const overlay = document.getElementById('overlay'), elResult = document.getElementById('result');
+  const btn = document.getElementById('start');
+  const COLORS = ['#5a2d1a', '#f7a8c0', '#c9762b', '#6fae6a']; // 초코, 딸기, 카라멜, 말차
+  let W = 0, H = 0, running = false, items = [], score = 0, lives = 3, spawnT = 0, elapsed = 0, last = 0;
+  let best = 0;
+  try { best = +localStorage.getItem('pepero-best') || 0; } catch (e) {}
+  const basket = { x: 0, w: 90, h: 46 };
+  const keys = {};
+
+  function resize() {
+    const r = cv.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
+    W = r.width; H = r.height;
+    cv.width = W * d; cv.height = H * d;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    basket.x = Math.min(Math.max(basket.x || W / 2, basket.w / 2), W - basket.w / 2);
+  }
+  addEventListener('resize', resize);
+
+  function moveTo(clientX) {
+    const r = cv.getBoundingClientRect();
+    basket.x = Math.min(Math.max(clientX - r.left, basket.w / 2), W - basket.w / 2);
+  }
+  cv.addEventListener('pointerdown', e => moveTo(e.clientX));
+  cv.addEventListener('pointermove', e => { moveTo(e.clientX); });
+  addEventListener('keydown', e => { keys[e.key] = true; if ((e.key === ' ' || e.key === 'Enter') && !running) start(); });
+  addEventListener('keyup', e => { keys[e.key] = false; });
+
+  function start() {
+    items = []; score = 0; lives = 3; spawnT = 0; elapsed = 0;
+    running = true; overlay.classList.add('hidden');
+    last = performance.now(); hud();
+    requestAnimationFrame(loop);
+  }
+  btn.addEventListener('click', start);
+
+  function hud() {
+    elScore.textContent = '점수 ' + score;
+    elLives.textContent = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, 3 - lives));
+  }
+
+  function spawn() {
+    const heart = Math.random() < 0.06;
+    items.push({
+      x: 24 + Math.random() * (W - 48), y: -70, heart,
+      vy: 150 + Math.min(elapsed * 4, 330) + Math.random() * 60,
+      rot: (Math.random() - .5) * .5, color: COLORS[Math.random() * COLORS.length | 0]
+    });
+  }
+
+  function over() {
+    running = false;
+    if (score > best) { best = score; try { localStorage.setItem('pepero-best', best); } catch (e) {} }
+    elResult.textContent = score + '개 받았어요! (최고 ' + best + ')';
+    btn.textContent = '다시 하기';
+    overlay.classList.remove('hidden');
+  }
+
+  function update(dt) {
+    elapsed += dt;
+    const sp = 420 * dt;
+    if (keys.ArrowLeft || keys.a) basket.x -= sp;
+    if (keys.ArrowRight || keys.d) basket.x += sp;
+    basket.x = Math.min(Math.max(basket.x, basket.w / 2), W - basket.w / 2);
+
+    spawnT -= dt;
+    if (spawnT <= 0) { spawn(); spawnT = Math.max(0.35, 1.0 - elapsed * 0.012); }
+
+    const top = H - basket.h - 16;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      it.y += it.vy * dt;
+      const tip = it.y + 30;
+      if (tip >= top && it.y - 30 <= top + 20 && Math.abs(it.x - basket.x) < basket.w / 2 + 4) {
+        items.splice(i, 1);
+        if (it.heart) lives = Math.min(3, lives + 1); else score++;
+        hud();
+      } else if (it.y - 30 > H) {
+        items.splice(i, 1);
+        if (!it.heart) { lives--; hud(); if (lives <= 0) return over(); }
+      }
+    }
+  }
+
+  function drawStick(it) {
+    ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(it.rot);
+    if (it.heart) {
+      ctx.fillStyle = '#e8456b'; ctx.font = '34px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('♥', 0, 0);
+    } else {
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#e9c48a'; ctx.lineWidth = 6;      // 과자 막대
+      ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(0, 30); ctx.stroke();
+      ctx.strokeStyle = it.color; ctx.lineWidth = 9;        // 코팅
+      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 30); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    items.forEach(drawStick);
+    const x = basket.x - basket.w / 2, y = H - basket.h - 16;
+    ctx.fillStyle = '#c98b4f';
+    ctx.beginPath();
+    ctx.moveTo(x, y); ctx.lineTo(x + basket.w, y);
+    ctx.lineTo(x + basket.w - 12, y + basket.h); ctx.lineTo(x + 12, y + basket.h);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#a56a35'; ctx.fillRect(x - 4, y - 4, basket.w + 8, 9);
+  }
+
+  function loop(now) {
+    if (!running) return;
+    const dt = Math.min((now - last) / 1000, 0.05); last = now;
+    update(dt); draw();
+    if (running) requestAnimationFrame(loop);
+  }
+
+  resize(); draw();
+})();
+</script>
+</body>
+</html>
