@@ -40,13 +40,13 @@
 <div id="hud" class="hidden"><span class="pill" id="stage">1단계</span><span class="pill" id="count">0 / 3</span><span class="pill" id="time">0.0초</span></div>
 <div id="radar" class="pill hidden">🧊 차가워요</div>
 <div id="toast" class="hidden"></div>
-<div id="bottom" class="hidden"><button id="sound" class="ghost">🔊</button><button id="hint" class="ghost">힌트 (+10초)</button></div>
+<div id="bottom" class="hidden"><button id="sound" class="ghost">🔊</button><button id="hint" class="ghost">🔍 힌트</button></div>
 <div id="banner" class="hidden"><b id="bannerTitle"></b><span id="bannerSub"></span></div>
 <div id="overlay"><div class="in">
   <h1>숨은 꼬물이 찾기</h1>
   <div id="result" class="hidden"></div>
   <div id="gallery" class="hidden"></div>
-  <p id="intro">꼬물이들이 주변에 숨었어요!<br>꼬물이는 뒤에 있는 색으로 몸을 바꿔요.<br>휴대폰을 돌려 둘러보고, <b>깜빡이는 눈</b>을 찾아 탭하세요.<br><br>🙈 겁쟁이는 오래 쳐다보면 도망가요<br>✨ 황금 꼬물이를 찾으면 −5초<br>⚡ 4초 안에 연속으로 찾으면 −2초</p>
+  <p id="intro">카멜레온 옷을 입은 꼬물이들이 숨었어요!<br>꼬물이는 뒤에 있는 색으로 옷 색을 바꿔요.<br>휴대폰을 돌려 둘러보고, <b>반짝이는 눈</b>과 <b>손 흔드는 친구</b>를 찾아 탭하세요.<br><br>🔍 힌트는 공짜! 못 찾으면 화살표가 도와줘요<br>✨ 황금 꼬물이를 찾으면 −5초</p>
   <div class="row">
     <button id="save" class="ghost hidden">📸 기념사진 저장</button>
     <button id="start">카메라 켜고 시작</button>
@@ -54,11 +54,11 @@
 </div></div>
 <script>
 (() => {
-  const FOV = 55, HINT_PENALTY = 10, GOLD_BONUS = 5, COMBO_BONUS = 2, COMBO_WINDOW = 4;
+  const FOV = 55, HINT_COOLDOWN = 5, AUTO_HINT = 15, GOLD_BONUS = 5, COMBO_BONUS = 2, COMBO_WINDOW = 4;
   const STAGES = [
-    { n: 3, shy: 0, title: '1단계 · 꼬물이 3마리', sub: '깜빡이는 눈을 찾아 탭!' },
-    { n: 4, shy: 1, title: '2단계 · 겁쟁이 등장', sub: '오래 쳐다보면 도망가요. 보이면 바로 탭!' },
-    { n: 6, shy: 2, title: '3단계 · 꼬물이 대가족', sub: '6마리! 감지기를 믿어 보세요' },
+    { n: 3, title: '1단계 · 꼬물이 3명', sub: '눈이 반짝! 손을 흔드는 친구를 찾아 탭!' },
+    { n: 4, title: '2단계 · 꼬물이 4명', sub: '감지기가 🔥 바로 여기! 하면 주변을 잘 봐요' },
+    { n: 5, title: '3단계 · 꼬물이 5명', sub: '마지막 단계! 모두 찾아 주세요' },
   ];
   const REVEAL = ['#ff7aa8', '#7ad3ff', '#b48cff', '#7be08a', '#ff9f5a', '#5ae0d2'];
   const ADJ = ['말랑한', '졸린', '배고픈', '수줍은', '용감한', '꼬질한', '통통한', '새침한', '느긋한', '장난꾸러기', '방귀쟁이', '잠꾸러기'];
@@ -72,7 +72,7 @@
   let yaw = 0, pitch = 0;
   let mode = 'menu';          // menu | play | between
   let stage = 0, chars = [], found = 0, needed = 0;
-  let active = 0, penalty = 0, bonus = 0, hintUntil = 0, lastFind = -99, radarT = 0;
+  let active = 0, penalty = 0, bonus = 0, hintUntil = 0, hintReady = 0, lastFind = -99, lastProgress = 0, radarT = 0, animNow = 0;
   let pixels = null, fx = [], photos = [], lastT = 0;
   let best = 0;
   try { best = +localStorage.getItem('hide-best3') || 0; } catch (e) {}
@@ -106,7 +106,6 @@
     found: () => { tone(660, .1, 'triangle'); tone(880, .1, 'triangle', .15, 0, .08); tone(1320, .18, 'triangle', .12, 0, .16); },
     gold: () => [784, 988, 1175, 1568, 1976].forEach((f, i) => tone(f, .14, 'triangle', .12, 0, i * .06)),
     miss: () => tone(180, .12, 'square', .05),
-    escape: () => tone(1000, .25, 'triangle', .1, .3),
     stage: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .16, 'square', .06, 0, i * .1)),
     win: () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, .2, 'triangle', .12, 0, i * .12)),
     tick: () => tone(1400, .03, 'sine', .04),
@@ -188,25 +187,25 @@
     if (drag && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 10) tap(e.clientX, e.clientY);
     drag = null;
   });
+  function showHint() { hintUntil = performance.now() + 3000; }
   $('hint').addEventListener('click', () => {
-    if (mode !== 'play') return;
-    penalty += HINT_PENALTY; hintUntil = performance.now() + 2500;
-    floatText(W / 2, H / 2 + 90, '+' + HINT_PENALTY + '초', '#ff8a8a');
+    if (mode !== 'play' || active < hintReady) return;
+    showHint(); hintReady = active + HINT_COOLDOWN;
   });
 
   /* ---------- 꼬물이 배치 ---------- */
   function newChar(kind, i) {
     const others = chars.filter(c => !c.found);
-    for (let tries = 0; tries < 200; tries++) {
-      const c = { yaw: yaw + rand(-130, 130), pitch: clamp(pitch + rand(-28, 28), -50, 50) };
-      if (others.some(o => Math.hypot(wrap(o.yaw - c.yaw), o.pitch - c.pitch) < 26)) continue;
+    for (let tries = 0; tries < 300; tries++) {
+      const c = { yaw: yaw + rand(-100, 100), pitch: clamp(pitch + rand(-18, 18), -45, 45) };
+      if (tries < 250 && others.some(o => Math.hypot(wrap(o.yaw - c.yaw), o.pitch - c.pitch) < 30)) continue;
       if (Math.abs(wrap(c.yaw - yaw)) < 20) continue;  // 시작하자마자 눈앞에 있지 않게
       return Object.assign(c, {
-        kind, r: kind === 'gold' ? rand(14, 18) : rand(17, 27), rot: rand(-.6, .6), flip: Math.random() < .5,
-        blink: rand(1, 3), open: 0, found: 0, watch: 0, escapes: kind === 'shy' ? 2 : 0,
+        kind, r: kind === 'gold' ? rand(22, 26) : rand(26, 34), flip: Math.random() < .5, phase: rand(0, 6),
+        blink: rand(1, 3), open: 0, wave: 0, waveCD: rand(1, 4), found: 0,
         color: kind === 'gold' ? '#ffd23f' : REVEAL[i % REVEAL.length],
-        tone: null, shade: rand(-10, 10),
-        name: kind === 'gold' ? '황금 꼬물이' : kind === 'shy' ? '겁쟁이 꼬물이' : ADJ[Math.random() * ADJ.length | 0] + ' 꼬물이',
+        tone: null, shade: (Math.random() < .5 ? -1 : 1) * rand(28, 40),
+        name: kind === 'gold' ? '황금 꼬물이' : ADJ[Math.random() * ADJ.length | 0] + ' 꼬물이',
       });
     }
     return null;
@@ -215,7 +214,7 @@
   function startStage(i) {
     stage = i; const S = STAGES[i];
     chars = []; found = 0; needed = S.n; hintUntil = 0;
-    for (let k = 0; k < S.n; k++) { const c = newChar(k < S.shy ? 'shy' : 'normal', k); if (c) chars.push(c); }
+    for (let k = 0; k < S.n; k++) { const c = newChar('normal', k); if (c) chars.push(c); }
     needed = chars.length;
     const gold = Math.random() < .6;
     if (gold) { const g = newChar('gold', 0); if (g) chars.push(g); }
@@ -226,7 +225,7 @@
     $('banner').classList.remove('hidden');
     sfx.stage();
     setTimeout(() => {
-      $('banner').classList.add('hidden'); mode = 'play';
+      $('banner').classList.add('hidden'); mode = 'play'; lastProgress = active;
       if (gold) toast('✨ 황금 꼬물이가 어딘가에… (찾으면 −' + GOLD_BONUS + '초)');
     }, 2200);
   }
@@ -246,8 +245,9 @@
     let hit = null, hd = 1e9;
     for (const c of chars) {
       if (c.found) continue;
-      const p = screenPos(c), d = Math.hypot(p.x - x, p.y - y);
-      if (d < c.r * 1.6 + 14 && d < hd) { hit = c; hd = d; }
+      // 사람 모양 전체(머리~발)를 넉넉하게 덮는 타원
+      const p = screenPos(c), dx = (p.x - x) / (c.r * 1.3 + 20), dy = (p.y - c.r * .6 - y) / (c.r * 2 + 20), d = dx * dx + dy * dy;
+      if (d < 1 && d < hd) { hit = c; hd = d; }
     }
     if (!hit) { fx.push({ type: 'ring', x, y, t: 0 }); sfx.miss(); return; }
     catchChar(hit);
@@ -271,24 +271,13 @@
       bonus += COMBO_BONUS;
       floatText(p.x, p.y - c.r - 42, '콤보! −' + COMBO_BONUS + '초', '#9be37a');
     }
-    lastFind = now;
+    lastFind = now; lastProgress = active;
     found++; updateCount();
     if (found >= needed) {
       for (const g of chars) if (!g.found && g.kind === 'gold') g.gone = true;
       mode = 'between';
       setTimeout(() => stage + 1 < STAGES.length ? startStage(stage + 1) : finish(), 1200);
     }
-  }
-
-  function escape(c, p) {
-    c.escapes--; c.watch = 0;
-    for (let i = 0; i < 14; i++) fx.push({ type: 'dust', x: p.x, y: p.y, vx: rand(-120, 120), vy: rand(-120, 60), t: 0, life: rand(.4, .7) });
-    floatText(p.x, p.y - c.r - 10, '앗!', '#fff');
-    sfx.escape();
-    if (navigator.vibrate) navigator.vibrate(15);
-    const n = newChar('shy', 0);
-    c.yaw = n ? yaw + Math.sign(wrap(n.yaw - yaw) || 1) * rand(40, 100) : yaw + 90;
-    c.pitch = n ? n.pitch : c.pitch; c.tone = null;
   }
 
   /* ---------- 효과 ---------- */
@@ -303,11 +292,11 @@
 
   /* ---------- 기념사진 ---------- */
   function snapshot(c, p) {
-    const S = 240, z = 2.2, cnv = document.createElement('canvas'); cnv.width = cnv.height = S;
+    const S = 240, z = 165 / (c.r * 3.6), cy = p.y - c.r * .6, cnv = document.createElement('canvas'); cnv.width = cnv.height = S;
     const g = cnv.getContext('2d');
     g.fillStyle = '#222'; g.fillRect(0, 0, S, S);
-    g.save(); g.translate(S / 2 - p.x * z, S / 2 - p.y * z); g.scale(z, z); drawCover(g, W, H); g.restore();
-    g.save(); g.translate(S / 2, S / 2); g.scale(z, z);
+    g.save(); g.translate(S / 2 - p.x * z, S / 2 - 12 - cy * z); g.scale(z, z); drawCover(g, W, H); g.restore();
+    g.save(); g.translate(S / 2, S / 2 - 12 + c.r * .6 * z); g.scale(z, z);
     drawChar(g, c, 0, 0, c.color, 1, 1, 10, true);
     g.restore();
     g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, S - 30, S, 30);
@@ -355,7 +344,7 @@
     $('start').disabled = true;
     const [camOk] = await Promise.all([startCamera(), startMotion()]);
     $('start').disabled = false;
-    yaw = 0; pitch = 0; active = 0; penalty = 0; bonus = 0; lastFind = -99; photos = []; fx = [];
+    yaw = 0; pitch = 0; active = 0; penalty = 0; bonus = 0; lastFind = -99; hintReady = 0; photos = []; fx = [];
     ['overlay'].forEach(id => $(id).classList.add('hidden'));
     ['hud', 'radar', 'bottom'].forEach(id => $(id).classList.remove('hidden'));
     startStage(0);
@@ -392,41 +381,84 @@
     return [r / n, g / n, b / n];
   }
 
-  // 꼬물이: 동그란 몸, 말린 꼬리, 툭 튀어나온 눈
-  function drawChar(g, c, x, y, fill, alpha, eyesOpen, glow, happy) {
-    const r = c.r;
-    g.save(); g.translate(x, y); g.rotate(c.rot); if (c.flip) g.scale(-1, 1);
-    g.globalAlpha = alpha;
-    if (glow) { g.shadowColor = c.kind === 'gold' && happy ? '#ffd23f' : '#fff'; g.shadowBlur = glow; }
-    g.fillStyle = fill; g.strokeStyle = fill; g.lineCap = 'round';
-    g.lineWidth = r * .32;
-    g.beginPath(); g.moveTo(-r * .8, r * .2);
-    g.quadraticCurveTo(-r * 1.6, r * .3, -r * 1.5, -r * .2);
-    g.arc(-r * 1.2, -r * .2, r * .3, Math.PI, Math.PI * 2.6); g.stroke();
-    g.lineWidth = r * .22;
-    for (const lx of [-.45, .45]) { g.beginPath(); g.moveTo(r * lx, r * .6); g.lineTo(r * lx * 1.2, r * 1.05); g.stroke(); }
-    g.beginPath(); g.ellipse(0, 0, r, r * .78, 0, 0, Math.PI * 2); g.fill();
-    g.beginPath(); g.arc(r * .45, -r * .55, r * .42, 0, Math.PI * 2); g.fill();
+  // 꼬물이: 카멜레온 옷을 입은 꼬마 (볏 모자, 말린 꼬리, 큰 눈)
+  // (x, y)는 허리 위치. 머리 꼭대기는 약 -2.4r, 발끝은 +1.2r
+  function drawChar(g, c, x, y, fill, alpha, eyesOpen, glow, happy, line) {
+    const r = c.r, t = animNow / 1000;
+    line = line || 'rgba(0,0,0,.35)';
+    g.save(); g.translate(x, y); if (c.flip) g.scale(-1, 1);
+    g.globalAlpha = alpha; g.lineCap = g.lineJoin = 'round';
+    const hop = happy ? -Math.abs(Math.sin(t * 7)) * r * .25 : 0;
+    g.translate(0, hop);
+
+    // 팔 각도(0 = 아래로, π = 위로)
+    const waving = c.wave > 0;
+    const aL = happy ? 2.6 + Math.sin(t * 9) * .2 : .35;
+    const aR = happy ? 2.6 - Math.sin(t * 9) * .2 : waving ? 2.5 + Math.sin(t * 14) * .45 : .35;
+    const arm = (side, a) => { const sx = side * r * .48, sy = -r * .72, L = r * .78; g.moveTo(sx, sy); g.lineTo(sx + side * Math.sin(a) * L, sy + Math.cos(a) * L); };
+    const limbs = (w, col) => {
+      g.strokeStyle = col; g.lineWidth = w; g.beginPath();
+      g.moveTo(-r * .24, r * .3); g.lineTo(-r * .3, r * 1.15);           // 다리
+      g.moveTo(r * .24, r * .3); g.lineTo(r * .3, r * 1.15);
+      arm(-1, aL); arm(1, aR);                                           // 팔
+      g.moveTo(-r * .35, r * .2);                                        // 말린 꼬리
+      g.quadraticCurveTo(-r * 1.15, r * .45, -r * 1.1, r * .02);
+      g.arc(-r * .84, r * .02, r * .26, Math.PI, Math.PI * 2.6);
+      g.stroke();
+    };
+    const bodyPath = () => {
+      g.beginPath();
+      const x0 = -r * .55, x1 = r * .55, y0 = -r * .98, y1 = r * .45, k = r * .35;
+      g.moveTo(x0 + k, y0); g.lineTo(x1 - k, y0); g.quadraticCurveTo(x1, y0, x1, y0 + k);
+      g.lineTo(x1, y1 - k); g.quadraticCurveTo(x1, y1, x1 - k, y1); g.lineTo(x0 + k, y1);
+      g.quadraticCurveTo(x0, y1, x0, y1 - k); g.lineTo(x0, y0 + k); g.quadraticCurveTo(x0, y0, x0 + k, y0);
+    };
+    const headPath = () => {
+      g.beginPath(); g.arc(0, -r * 1.55, r * .62, 0, Math.PI * 2);
+      g.moveTo(r * .42, -r * 2.05); g.arc(0, -r * 2.0, r * .42, -.15, Math.PI + .15, true);   // 카멜레온 볏 모자
+    };
+
+    if (glow) { g.shadowColor = c.kind === 'gold' ? '#ffd23f' : '#fff'; g.shadowBlur = glow; }
+    // 외곽선 → 채우기 순서로 그려서 테두리가 보이게
+    limbs(r * .34 + 4, line);
+    g.lineWidth = 4; g.strokeStyle = line; bodyPath(); g.stroke(); headPath(); g.stroke();
     g.shadowBlur = 0;
-    if (happy) {
-      // 볼터치 + 웃는 입
-      g.fillStyle = 'rgba(255,255,255,.35)';
-      g.beginPath(); g.ellipse(r * .55, r * .05, r * .18, r * .12, 0, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = Math.max(1.2, r * .08);
-      g.beginPath(); g.arc(r * .72, r * .02, r * .16, .25, Math.PI - .25); g.stroke();
+    limbs(r * .34, fill);
+    g.fillStyle = fill; bodyPath(); g.fill(); headPath(); g.fill();
+
+    // 비늘 무늬
+    g.fillStyle = 'rgba(0,0,0,.13)';
+    for (const [dx, dy, s] of [[-.22, -.55, .13], [.2, -.3, .11], [-.1, .05, .12], [.25, .22, .09], [-.3, -1.95, .09], [.15, -2.12, .08]]) {
+      g.beginPath(); g.arc(r * dx, r * dy, r * s, 0, Math.PI * 2); g.fill();
     }
-    if (eyesOpen > 0) {
-      g.globalAlpha = alpha * Math.min(1, eyesOpen);
-      g.fillStyle = c.kind === 'gold' && !happy ? '#fff6c2' : '#fff';
-      g.beginPath(); g.ellipse(r * .5, -r * .58, r * .25, r * .25 * eyesOpen, 0, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#111';
-      g.beginPath(); g.arc(r * .58, -r * .58, r * .11, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.18)';
+    g.beginPath(); g.ellipse(-r * .2, -r * 1.8, r * .18, r * .1, -.5, 0, Math.PI * 2); g.fill();
+
+    // 눈 (항상 크게, 눈동자가 이리저리)
+    const look = happy ? 0 : Math.sin(t * 1.3 + c.phase) * r * .07;
+    for (const ex of [-.25, .25]) {
+      g.fillStyle = '#fff'; g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 1.5;
+      g.beginPath(); g.ellipse(r * ex, -r * 1.58, r * .2, r * .22 * Math.max(.12, eyesOpen), 0, 0, Math.PI * 2); g.fill(); g.stroke();
+      if (eyesOpen > .5) {
+        g.fillStyle = '#111';
+        g.beginPath(); g.arc(r * ex + look, -r * 1.55, r * .1, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#fff';
+        g.beginPath(); g.arc(r * ex + look + r * .035, -r * 1.59, r * .035, 0, Math.PI * 2); g.fill();
+      }
+    }
+    if (happy) {
+      g.fillStyle = 'rgba(255,120,150,.45)';
+      for (const ex of [-.4, .4]) { g.beginPath(); g.ellipse(r * ex, -r * 1.3, r * .1, r * .07, 0, 0, Math.PI * 2); g.fill(); }
+      g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = Math.max(1.5, r * .07);
+      g.beginPath(); g.arc(0, -r * 1.32, r * .16, .2, Math.PI - .2); g.stroke();
     } else {
-      g.globalAlpha = alpha * .35; g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.2;
-      g.beginPath(); g.moveTo(r * .3, -r * .58); g.lineTo(r * .7, -r * .58); g.stroke();
+      g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = Math.max(1.2, r * .05);
+      g.beginPath(); g.arc(0, -r * 1.28, r * .08, .3, Math.PI - .3); g.stroke();
     }
     g.restore();
   }
+
+  const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 
   function nearest() {
     let b = null, bd = 1e9;
@@ -464,45 +496,47 @@
     if (drawCover(sctx, sample.width, sample.height)) pixels = sctx.getImageData(0, 0, sample.width, sample.height).data;
 
     const near = nearest();
+    animNow = now;
+    // 한동안 못 찾으면 자동 힌트
+    if (mode === 'play' && active - lastProgress > AUTO_HINT) { showHint(); lastProgress = active; toast('여기 쪽을 봐요! 👉', 2000); }
     for (const c of chars) {
       const p = screenPos(c);
-      const onScreen = p.x > -60 && p.x < W + 60 && p.y > -60 && p.y < H + 60;
+      const onScreen = p.x > -80 && p.x < W + 80 && p.y > -40 && p.y < H + c.r * 3;
+      if (!onScreen) continue;
       if (c.found) {
-        c.found = Math.min(c.found + dt * 2.5, 1);
-        if (!onScreen) continue;
-        const s = 1 + Math.sin(c.found * Math.PI) * .5, bob = Math.sin(now / 250 + c.r) * 2;
-        ctx.save(); ctx.translate(p.x, p.y + bob); ctx.scale(s, s);
-        drawChar(ctx, c, 0, 0, c.color, 1, 1, 14, true);
+        // 배경색 → 원래 색으로 물들며 만세
+        c.found = Math.min(c.found + dt * 1.5, 1);
+        const a = c.tone || hexRgb(c.color), b = hexRgb(c.color), k = c.found;
+        const fill = `rgb(${a.map((v, i) => (v + (b[i] - v) * k) | 0).join(',')})`;
+        const s = 1 + Math.sin(Math.min(1, c.found * 1.6) * Math.PI) * .35;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.scale(s, s);
+        drawChar(ctx, c, 0, 0, fill, 1, 1, 14, true);
         ctx.restore();
         continue;
       }
-      if (c.gone) { c.goneT = (c.goneT || 0) + dt; if (c.goneT > 1 || !onScreen) continue; }
+      if (c.gone) { c.goneT = (c.goneT || 0) + dt; if (c.goneT > 1) continue; }
 
-      // 겁쟁이: 화면 가운데서 오래 쳐다보면 도망
-      const centered = Math.abs(p.x - W / 2) < W * .32 && Math.abs(p.y - H / 2) < H * .3;
-      if (c.kind === 'shy' && mode === 'play' && c.escapes > 0) {
-        c.watch = centered ? c.watch + dt : Math.max(0, c.watch - dt);
-        if (c.watch > 1.5) { escape(c, p); continue; }
-      }
-      if (!onScreen) continue;
-
-      const bg = colorAt(p.x, p.y);
+      // 옷 색이 등 뒤 색을 따라감 (조금 더 밝거나 어둡게 → 아이들도 찾을 수 있게)
+      const bg = colorAt(p.x, p.y - c.r * .6);
       if (!c.tone) c.tone = bg.slice();
-      for (let i = 0; i < 3; i++) c.tone[i] += (bg[i] + c.shade - c.tone[i]) * Math.min(1, dt * 6);
+      for (let i = 0; i < 3; i++) c.tone[i] += (bg[i] + c.shade - c.tone[i]) * Math.min(1, dt * 4);
+      const lum = c.tone[0] * .3 + c.tone[1] * .59 + c.tone[2] * .11;
+      const line = lum > 140 ? 'rgba(40,30,20,.55)' : 'rgba(255,255,255,.6)';
 
       c.blink -= dt;
-      if (c.blink <= 0) { c.open = .9; c.blink = c.kind === 'gold' ? rand(1, 2) : rand(2, 4.5); }
+      if (c.blink <= 0) { c.open = .15; c.blink = rand(2.5, 5); }
       c.open = Math.max(0, c.open - dt);
-      let eyes = c.open > 0 ? Math.min(1, c.open * 4, (.9 - c.open) * 6 + .2) : 0;
-      let shake = 0;
-      if (c.kind === 'shy' && c.watch > .8) { eyes = 1.15; shake = Math.sin(now / 25) * 2; }   // 들킬까 봐 덜덜
-      const wob = Math.sin(now / 400 + c.r) * 1.2;
-      let fill = `rgb(${c.tone.map(v => clamp(v | 0, 0, 255)).join(',')})`;
-      const glow = now < hintUntil && near && c === near.c ? 18 + Math.sin(now / 80) * 8 : 0;
-      const alpha = c.gone ? .93 * (1 - c.goneT) : .93;
-      drawChar(ctx, c, p.x + shake, p.y + wob, fill, alpha, eyes, glow, false);
-      if (c.kind === 'gold' && Math.random() < dt * 1.5) {
-        fx.push({ type: 'spark', x: p.x + rand(-c.r, c.r), y: p.y + rand(-c.r, c.r), t: 0, life: .5 });
+      c.waveCD -= dt;
+      if (c.waveCD <= 0) { c.wave = 1.4; c.waveCD = rand(3, 6); }
+      c.wave = Math.max(0, c.wave - dt);
+      const eyes = c.open > 0 ? .1 : 1;
+      const wob = Math.sin(now / 400 + c.phase) * 1.5;
+      const fill = `rgb(${c.tone.map(v => clamp(v | 0, 0, 255)).join(',')})`;
+      const glow = now < hintUntil && near && c === near.c ? 22 + Math.sin(now / 80) * 10 : 0;
+      const alpha = c.gone ? 1 - c.goneT : 1;
+      drawChar(ctx, c, p.x, p.y + wob, fill, alpha, eyes, glow, false, line);
+      if (c.kind === 'gold' && Math.random() < dt * 3) {
+        fx.push({ type: 'spark', x: p.x + rand(-c.r, c.r), y: p.y - c.r * .6 + rand(-c.r * 1.5, c.r), t: 0, life: .6 });
       }
     }
 
